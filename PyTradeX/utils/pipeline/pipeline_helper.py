@@ -3,6 +3,7 @@ from PyTradeX.utils.others.s3_helper import load_from_s3, write_to_s3
 from nancorrmp.nancorrmp import NaNCorrMp
 import pandas as pd
 import numpy as np
+import logging
 from tqdm import tqdm
 from typing import Dict, List
 from pprint import pprint
@@ -11,6 +12,7 @@ from pprint import pprint
 def update_GFM_train_coins(
     ml_datasets: Dict[str, Dict[str, pd.DataFrame]],
     intervals: str,
+    logger: logging.Logger = None,
     debug: bool = False
 ):
     # Extract coin_names & methods
@@ -21,7 +23,7 @@ def update_GFM_train_coins(
     cm_dict = {}
 
     # Populate Correlation Matrix dict
-    print('Preparing Correlation Matrix dict:')
+    logger.info('Preparing Correlation Matrix dict:')
     for method in tqdm(methods):
         # Define method datasets
         method_datasets = pd.concat([
@@ -49,7 +51,7 @@ def update_GFM_train_coins(
     }
 
     # Populate train_coins_dict
-    print('\nPopulating train coins dict:')
+    logger.info('\nPopulating train coins dict:')
     for coin_name in tqdm(coin_names):
         for method in methods:
             # Find correlation quantile & thresold

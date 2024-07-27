@@ -104,9 +104,12 @@ def put_binance_order():
 
 
 # conda deactivate
-# source .pytradex_venv/bin/activate
-# .pytradex_venv/bin/python dummy.py
+# source .itba_dl/bin/activate
+# .itba_dl/bin/python dummy.py
 if __name__ == '__main__':
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import LSTM, Dense
+
     # balances: pd.DataFrame = load_from_s3(
     #     path=f"{Params.bucket}/financials/facts/futures_orders_history.parquet",
     #     load_reduced_dataset=False
@@ -119,21 +122,21 @@ if __name__ == '__main__':
     #     overwrite=True
     # )
     
-    collective_data: pd.DataFrame = get_collective_data(
-        client=client, 
-        loaded_collective_data=None,
-        accelerated=False,
-        category_features=None,
-        other_coins=other_coins, 
-        intervals=intervals, 
-        periods=data_params.get('periods'),
-        yfinance_params=data_params.get('yfinance_params'),
-        parallel=True,
-        skip_check=True,
-        validate=True,
-        save=True,
-        overwrite=True,
-        save_mock=False,
-        ignore_last_period_check=False,
-        debug=False
-    )
+    # collective_data: pd.DataFrame = get_collective_data(
+    #     client=client, 
+    #     loaded_collective_data=None,
+    #     accelerated=False,
+    #     category_features=None,
+    #     other_coins=other_coins, 
+    #     intervals=intervals, 
+    #     periods=data_params.get('periods'),
+    #     yfinance_params=data_params.get('yfinance_params'),
+    #     parallel=True,
+    #     skip_check=True,
+    #     validate=True,
+    #     save=True,
+    #     overwrite=True,
+    #     save_mock=False,
+    #     ignore_last_period_check=False,
+    #     debug=False
+    # )

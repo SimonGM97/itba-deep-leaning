@@ -133,16 +133,7 @@ ml_params:
   importance_method: native # shap
   
   algorithms: 
-    # - naive_lv
-    # - naive_ma
-    # - expo_smooth # takes too long & bad results
-    # - sarimax # takes too long & bad results
-    - random_forest
-    - lightgbm
-    - xgboost
-    # - prophet # takes too long
-    # - orbit
-    # - lstm
+    - lstm
     # - n_beats 
     # - tft
 
@@ -358,17 +349,17 @@ model_building:
     tuning_params:
       tune_models: true
 
-      load_datasets_from_local: false
+      load_datasets_from_local: true
       save_datasets_to_local: false
 
-      update_GFM_train_coins: true
-      update_ltp_lsl_stp_ssl: true
+      update_GFM_train_coins: false
+      update_ltp_lsl_stp_ssl: false
 
       reset_dev_lfm_models: false
       tune_lfm_models: true
       reduced_tuning_periods:
         30min: 18000
-        60min: 14000
+        60min: 5000 # 14000
       tune_gfm_models: true
       evaluate_models: true
 

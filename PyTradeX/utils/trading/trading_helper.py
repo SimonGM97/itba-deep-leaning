@@ -32,6 +32,7 @@ def find_ltp_lsl_stp_ssl(
     coin_name: str,
     intervals: str,
     trading_metric_type: str = 'avg_ret',
+    plot_returns: bool = False,
     debug: bool = False
 ) -> Tuple[float, float, float, float]:
     def prepare_dummy_forecast_df() -> pd.DataFrame:
@@ -455,7 +456,7 @@ def find_ltp_lsl_stp_ssl(
         print(f'optimal_ssl: {optimal_ssl} ({ssl_df["trading_metric"].max()})\n'
               f'ssl_df:\n{ssl_df.tail(10)}\n\n')
 
-    if debug:
+    if plot_returns:
         # Prepare returns_df
         returns_df: pd.DataFrame = (
             dummy_table

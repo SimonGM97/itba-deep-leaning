@@ -43,7 +43,7 @@ def lambda_handler(
         logger=LOGGER, 
         log_keys=[
             'intervals', 'full_coin_list', 'methods',
-            'tuning_params', 'updating_params', 'drift_params'
+            'tuning_params', 'updating_params'
         ],
         **params
     )
@@ -74,9 +74,9 @@ LOGGER = get_logger(
 
 # source deactivate
 # conda deactivate
-# source .pytradex_venv/bin/activate
-# .pytradex_venv/bin/python scripts/modeling/modeling.py --workflow default
-#   --workflow: default | model_updating | model_building2
+# source .itba_dl/bin/activate
+# .itba_dl/bin/python scripts/modeling/modeling.py --workflow model_building
+#   --workflow: default | model_updating | model_building
 if __name__ == "__main__":
     # Define parser
     parser = argparse.ArgumentParser(description='Modeling script.')

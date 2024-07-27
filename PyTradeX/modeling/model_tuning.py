@@ -70,47 +70,15 @@ LOGGER = get_logger(
 class ModelTuner:
 
     int_parameters = [
-        # naive_lv
-        'naive_lv.lv',
-
-        # naive_ma
-        'naive_ma.period',
-
-        # expo_smooth
-        'seasonal_periods.seasonal_periods',
-
-        # sarimax
-        'sarimax.p', 
-        'sarimax.d', 
-        'sarimax.q',    
-        'sarimax.seasonal_P',
-        'sarimax.seasonal_D',
-        'sarimax.seasonal_Q',
-        'sarimax.seasonal_S',
-
-        # random_forest
-        'random_forest.n_estimators',
-        'random_forest.max_depth',
-        'random_forest.min_samples_split',
-
-        # lightgbm
-        'lightgbm.n_estimators',
-        'lightgbm.max_depth',
-        'lightgbm.min_child_samples',
-        'lightgbm.num_leaves',
-
-        # prophet
-        'prophet.n_changepoints',
-
         # lstm
         'lstm.layers',
         'lstm.units',
         'lstm.batch_size',
 
-        # n_beats
-        'n_beats.blocks_per_stack', 
-        'n_beats.layer_width', 
-        'n_beats.batch_size',
+        # # n_beats
+        # 'n_beats.blocks_per_stack', 
+        # 'n_beats.layer_width', 
+        # 'n_beats.batch_size',
     ]
     
     choice_parameters = {
@@ -125,156 +93,19 @@ class ModelTuner:
         # 'long_permission': [True, False],
         # 'short_permission': [True, False],
 
-        # naive_lv
-        'naive_lv.lv': [1] + [lv+1 for lv in Params.data_params.get('lag_periods')],
-
-        # naive_ma
-        'naive_ma.period': [lv+1 for lv in Params.data_params.get('lag_periods') if lv > 1],
-        'naive_ma.weight_type': ['normal', 'decreasing'],
-
-        # expo_smooth
-        'expo_smooth.trend': ["additive", "multiplicative", None],
-        'expo_smooth.damped_trend': [True, False],
-        'expo_smooth.seasonal': ["additive", "multiplicative", None],
-        'expo_smooth.seasonal_periods': [12, 48, 48*7],
-
-        # sarimax
-        'sarimax.trend': [None, 'ct'],
-        'sarimax.seasonal_S': [0, 6, 12, 24],
-
-        # random_forest
-        'random_forest.max_features': [1.0, 'sqrt'],
-
-        # lightgbm
-        'lightgbm.objective': ['regression', 'regression_l1', 'huber', 'quantile', 'mape'],
-        'lightgbm.boosting_type': ['gbdt', 'dart'],
-
-        # xgboost
-        'xgboost.objective': ['reg:squarederror', 'reg:absoluteerror', 'reg:quantileerror'], # , 'reg:pseudohubererror'
-        'xgboost.booster': ['gbtree', 'dart'],
-
-        # prophet
-        'prophet.growth': ['linear', 'logistic', 'flat'],
-        'prophet.holidays': [True, False],
-        'prophet.yearly_seasonality': ['auto', True, False],
-        'prophet.monthly_seasonality': [True, False],
-        'prophet.weekly_seasonality': ['auto', True, False],
-        'prophet.daily_seasonality': ['auto', True, False],
-        'prophet.seasonality_mode': ['additive', 'multiplicative'],
-
-        # orbit
-        'orbit.orbit_model': ['DLT', 'ETS', 'LGT', 'KTR'],
-
         # lstm
         'lstm.topology': ['classic', 'bidirectional', 'convolutional'],
         'lstm.units': [16, 32, 64, 128, 256],
         'lstm.batch_size': [16, 32, 64, 128, 256],
 
-        # n_beats
-        'n_beats.num_stacks': [4, 8, 16, 32, 64, 128],  # blocks_per_stack - , '128' , '256'
-        'n_beats.layer_widths': [4, 8, 16, 32, 64, 128], # , '256'
-        'n_beats.batch_size': [4, 8, 16, 32, 64], # , '128' , '256'
+        # # n_beats
+        # 'n_beats.num_stacks': [4, 8, 16, 32, 64, 128],  # blocks_per_stack - , '128' , '256'
+        # 'n_beats.layer_widths': [4, 8, 16, 32, 64, 128], # , '256'
+        # 'n_beats.batch_size': [4, 8, 16, 32, 64], # , '128' , '256'
     }
 
     # Model Type Choices
     model_type_choices = [
-        # Naive Last Value Search Space
-        {
-            "algorithm": 'naive_lv',
-            "naive_lv.lv": scope.int(hp.choice('naive_lv.lv', choice_parameters['naive_lv.lv']))
-        },
-
-        # Mooving Average Search Space
-        {
-            "algorithm": 'naive_ma',
-            "naive_ma.period": scope.int(hp.choice('naive_ma.period', choice_parameters['naive_ma.period'])),
-            "naive_ma.weight_type": hp.choice('naive_ma.weight_type', choice_parameters['naive_ma.weight_type'])
-        },
-
-        # Exponential Smoothing Search Space
-        {
-            "algorithm": 'expo_smooth',
-            "expo_smooth.trend": hp.choice('expo_smooth.trend', choice_parameters['expo_smooth.trend']),
-            "expo_smooth.damped_trend": hp.choice('expo_smooth.damped_trend', choice_parameters['expo_smooth.damped_trend']),
-            "expo_smooth.seasonal": hp.choice('expo_smooth.seasonal', choice_parameters['expo_smooth.seasonal']),
-            "expo_smooth.seasonal_periods": scope.int(hp.choice('expo_smooth.seasonal_periods', choice_parameters['expo_smooth.seasonal_periods']))
-        },
-
-        # Sarimax Search Space
-        {
-            "algorithm": 'sarimax',
-            "sarimax.trend": hp.choice('sarimax.trend', choice_parameters['sarimax.trend']),
-            "sarimax.p": scope.int(hp.quniform('sarimax.p', 0, 6, 1)),
-            # "sarimax.d": scope.int(hp.quniform('sarimax.d', 0, 1, 1)),
-            "sarimax.q": scope.int(hp.quniform('sarimax.q', 0, 3, 1)),
-            "sarimax.seasonal_P": scope.int(hp.quniform('sarimax.seasonal_P', 0, 3, 1)),
-            # "sarimax.seasonal_D": scope.int(hp.quniform('sarimax.seasonal_D', 0, 1, 1)),
-            "sarimax.seasonal_Q": scope.int(hp.quniform('sarimax.seasonal_Q', 0, 2, 1)),
-            "sarimax.seasonal_S": scope.int(hp.choice('sarimax.seasonal_S', choice_parameters['sarimax.seasonal_S']))
-        },
-
-        # Random Forest Search Space
-        {
-            "algorithm": 'random_forest',
-            "random_forest.n_estimators": scope.int(hp.quniform('random_forest.n_estimators', 15, 400, 1)),
-            "random_forest.max_depth": scope.int(hp.quniform('random_forest.max_depth', 15, 200, 1)),
-            "random_forest.min_samples_split": scope.int(hp.quniform('random_forest.min_samples_split', 5, 200, 1)),
-            "random_forest.max_features": hp.choice('random_forest.max_features', choice_parameters['random_forest.max_features']),
-        },
-        
-        # Lightgbm Search Space
-        {
-            "algorithm": 'lightgbm',
-            "lightgbm.objective": hp.choice('lightgbm.objective', choice_parameters['lightgbm.objective']),
-            "lightgbm.boosting_type": hp.choice('lightgbm.boosting_type', choice_parameters['lightgbm.boosting_type']),
-            "lightgbm.n_estimators": scope.int(hp.quniform('lightgbm.n_estimators', 5, 300, 1)),
-            "lightgbm.max_depth": scope.int(hp.quniform('lightgbm.max_depth', 1, 150, 1)),
-            "lightgbm.min_child_samples": scope.int(hp.quniform('lightgbm.min_child_samples', 5, 100, 1)),
-            "lightgbm.learning_rate": hp.loguniform('lightgbm.learning_rate', np.log(0.001), np.log(0.3)),
-            "lightgbm.num_leaves": scope.int(hp.quniform('lightgbm.num_leaves', 5, 150, 1)),
-            "lightgbm.colsample_bytree": hp.uniform('lightgbm.colsample_bytree', 0.6, 1)
-        },
-
-        # XGBoost Search Space
-        {
-            "algorithm": 'xgboost',
-            "xgboost.objective": hp.choice('xgboost.objective', choice_parameters['xgboost.objective']),
-            "xgboost.booster": hp.choice('xgboost.booster', choice_parameters['xgboost.booster']),
-            "xgboost.eta": hp.loguniform('xgboost.eta', np.log(0.005), np.log(0.4)), # learning_rate
-            # "xgboost.gamma": None,
-            "xgboost.n_estimators": scope.int(hp.quniform('xgboost.n_estimators', 5, 250, 1)),
-            "xgboost.max_depth": scope.int(hp.quniform('xgboost.max_depth', 1, 120, 1)),
-            # "xgboost.min_child_weight": scope.int(hp.quniform('xgboost.min_child_weight', 5, 90, 1)),
-            "xgboost.colsample_bytree": hp.uniform('xgboost.colsample_bytree', 0.6, 1),
-            "xgboost.lambda": hp.loguniform('xgboost.lambda', np.log(0.001), np.log(5)),
-            "xgboost.alpha": hp.loguniform('xgboost.alpha', np.log(0.001), np.log(5)),
-            "xgboost.max_leaves": scope.int(hp.quniform('xgboost.max_leaves', 5, 120, 1)),
-        },
-
-        # Prophet Search Space
-        {
-            "algorithm": 'prophet',
-
-            "prophet.growth": hp.choice('prophet.growth', choice_parameters['prophet.growth']),
-            "prophet.changepoint_range": hp.uniform('prophet.changepoint_range', 0.8, 0.95),
-            "prophet.changepoint_prior_scale": hp.loguniform('prophet.changepoint_prior_scale', np.log(0.001), np.log(0.5)),
-            "prophet.seasonality_prior_scale": hp.loguniform('prophet.seasonality_prior_scale', np.log(0.01), np.log(10.0)),
-            # "prophet.n_changepoints": scope.int(hp.quniform('prophet.n_changepoints', 0, 20, 1)),
-
-            "prophet.holidays": hp.choice('prophet.holidays', choice_parameters['prophet.holidays']),
-            # "prophet.yearly_seasonality": hp.choice('prophet.yearly_seasonality', choice_parameters['prophet.yearly_seasonality']),
-            "prophet.monthly_seasonality": hp.choice('prophet.monthly_seasonality', choice_parameters['prophet.monthly_seasonality']),
-            "prophet.weekly_seasonality": hp.choice('prophet.weekly_seasonality', choice_parameters['prophet.weekly_seasonality']),
-            "prophet.daily_seasonality": hp.choice('prophet.daily_seasonality', choice_parameters['prophet.daily_seasonality']),
-            "prophet.seasonality_mode": hp.choice('prophet.seasonality_mode', choice_parameters['prophet.seasonality_mode']),
-        },
-
-        # Orbit Search Space
-        {
-            "algorithm": 'orbit',
-            "orbit.orbit_model": hp.choice('orbit.orbit_model', choice_parameters['orbit.orbit_model'])
-        },
-
         # LSTM Search Space
         {
             "algorithm": 'lstm',
@@ -287,24 +118,24 @@ class ModelTuner:
             # "lstm.batch_size": scope.int(hp.choice('lstm.batch_size', choice_parameters['lstm.batch_size'])),
         },
 
-        # N-Beats Search Space
-        {
-            "algorithm": 'n_beats',
-            # "n_beats.input_chunk_length": scope.int(hp.quniform('n_beats.input_chunk_length', 10, 50, 1)),
-            # "n_beats.output_chunk_length": scope.int(hp.quniform('n_beats.output_chunk_length', 1, 10, 1)),
-            "n_beats.num_stacks": scope.int(hp.choice('n_beats.num_stacks', choice_parameters['n_beats.num_stacks'])),
-            "n_beats.num_blocks": scope.int(hp.quniform('n_beats.num_blocks', 1, 10, 1)),
-            "n_beats.num_layers": scope.int(hp.quniform('n_beats.num_layers', 2, 6, 1)),
-            "n_beats.layer_widths": scope.int(hp.choice('n_beats.layer_widths', choice_parameters['n_beats.layer_widths'])),
-            # "n_beats.layer_widths": hp.choice('n_beats.layer_widths', [
-            #     [scope.int(hp.quniform('n_beats.layer_width_1', 32, 512, 1))]*4,
-            #     [scope.int(hp.quniform('n_beats.layer_width_2', 32, 512, 1))]*8,
-            #     [scope.int(hp.quniform('n_beats.layer_width_3', 32, 512, 1))]*16,
-            # ]),
-            "n_beats.dropout": hp.uniform('n_beats.dropout', 0, 0.5),
-            "n_beats.learning_rate": hp.loguniform('n_beats.learning_rate', np.log(0.001), np.log(0.3)), # -6, -1
-            "n_beats.batch_size": scope.int(hp.choice('n_beats.batch_size', choice_parameters['n_beats.batch_size']))
-        },
+        # # N-Beats Search Space
+        # {
+        #     "algorithm": 'n_beats',
+        #     # "n_beats.input_chunk_length": scope.int(hp.quniform('n_beats.input_chunk_length', 10, 50, 1)),
+        #     # "n_beats.output_chunk_length": scope.int(hp.quniform('n_beats.output_chunk_length', 1, 10, 1)),
+        #     "n_beats.num_stacks": scope.int(hp.choice('n_beats.num_stacks', choice_parameters['n_beats.num_stacks'])),
+        #     "n_beats.num_blocks": scope.int(hp.quniform('n_beats.num_blocks', 1, 10, 1)),
+        #     "n_beats.num_layers": scope.int(hp.quniform('n_beats.num_layers', 2, 6, 1)),
+        #     "n_beats.layer_widths": scope.int(hp.choice('n_beats.layer_widths', choice_parameters['n_beats.layer_widths'])),
+        #     # "n_beats.layer_widths": hp.choice('n_beats.layer_widths', [
+        #     #     [scope.int(hp.quniform('n_beats.layer_width_1', 32, 512, 1))]*4,
+        #     #     [scope.int(hp.quniform('n_beats.layer_width_2', 32, 512, 1))]*8,
+        #     #     [scope.int(hp.quniform('n_beats.layer_width_3', 32, 512, 1))]*16,
+        #     # ]),
+        #     "n_beats.dropout": hp.uniform('n_beats.dropout', 0, 0.5),
+        #     "n_beats.learning_rate": hp.loguniform('n_beats.learning_rate', np.log(0.001), np.log(0.3)), # -6, -1
+        #     "n_beats.batch_size": scope.int(hp.choice('n_beats.batch_size', choice_parameters['n_beats.batch_size']))
+        # },
 
         # TFT Search Space
     ]
@@ -395,6 +226,7 @@ class ModelTuner:
                     )
                     return False
             return True
+        
         LOGGER.warning(
             'Model %s (%s | %s) was filtered out in model_filter.\n'
             'Model val_table:\n%s\n',
@@ -656,74 +488,74 @@ class ModelTuner:
         warm_start_params: str = None,
         debug: bool = False
     ) -> dict:
-        try:
-            # Prepare parameters
-            parameters = self.prepare_parameters(
-                parameters=parameters,
-                selected_features=selected_features,
-                warm_start_params=warm_start_params,
-                reverse_forecasts=False,
-                debug=debug # debug
-            )
+        # try:
+        # Prepare parameters
+        parameters = self.prepare_parameters(
+            parameters=parameters,
+            selected_features=selected_features,
+            warm_start_params=warm_start_params,
+            reverse_forecasts=False,
+            debug=debug # debug
+        )
 
-            # Instanciate MLPipeline
-            ml_pipeline = MLPipeline(
-                pipeline_params=parameters,
-                ml_params=self.ml_params,
-                trading_params=self.trading_params
-            )
+        # Instanciate MLPipeline
+        ml_pipeline = MLPipeline(
+            pipeline_params=parameters,
+            ml_params=self.ml_params,
+            trading_params=self.trading_params
+        )
 
-            # Run Model Build Pipeline
-            model: Model = ml_pipeline.build_pipeline(
-                ml_datasets=ml_datasets,
-                reduced_tuning_periods=reduced_tuning_periods,
-                model=None,
-                ignore_update=False,
-                find_val_table=True,
-                re_fit_train_val=False,
-                find_test_table=False,
-                find_opt_table=False,
-                tune_opt_table=False,
-                find_feature_importance=False,
-                debug=debug,
-                dec_timeout=4.15*60
-            )
+        # Run Model Build Pipeline
+        model: Model = ml_pipeline.build_pipeline(
+            ml_datasets=ml_datasets,
+            reduced_tuning_periods=reduced_tuning_periods,
+            model=None,
+            ignore_update=False,
+            find_val_table=True,
+            re_fit_train_val=False,
+            find_test_table=False,
+            find_opt_table=False,
+            tune_opt_table=False,
+            find_feature_importance=False,
+            debug=debug,
+            dec_timeout=4.15*60
+        )
 
-            # Delete ml_pipeline from memory
-            del ml_pipeline
-            
-            # Update self.lfm_models: Only update dev_models for new models
-            self.update_lfm_models(
-                new_candidate=model,
-                debug=debug # debug
-            )
+        # Delete ml_pipeline from memory
+        del ml_pipeline
+        
+        # Update self.lfm_models: Only update dev_models for new models
+        self.update_lfm_models(
+            new_candidate=model,
+            debug=debug # debug
+        )
 
-            # Extract tuning_metric from val_table
-            tuning_metric = model.val_table.tuning_metric
+        # Extract tuning_metric from val_table
+        tuning_metric = model.val_table.tuning_metric
 
-            if debug:
-                i = 1
-                attr_names = [
-                    'model_id', 'coin_name', 'algorithm', 'method', 'pca'
-                ]
-                for model in self.lfm_models[:5]:
-                    print(f"Model n: {i}\n"
-                        "{")
-                    for attr_name in attr_names:
-                        print(f"    '{attr_name}': {getattr(model, attr_name)}")
-                    print(f'    val tuning_metric: {tuning_metric}')
-                    print('}\n\n')
-                    i += 1
-            
-            # Return Loss
-            return {'loss': -tuning_metric, 'status': STATUS_OK}
-        except Exception as e:
-            LOGGER.warning(
-                'Skipping iteration.\n'
-                'Exception: %s\n', e
-            )
-                # f'Parameters:\n{parameters}\n\n')
-            return {'loss': np.inf, 'status': STATUS_OK}
+        if debug:
+            i = 1
+            attr_names = [
+                'model_id', 'coin_name', 'algorithm', 'method', 'pca'
+            ]
+            for model in self.lfm_models[:5]:
+                print(f"Model n: {i}\n"
+                    "{")
+                for attr_name in attr_names:
+                    print(f"    '{attr_name}': {getattr(model, attr_name)}")
+                print(f'    val tuning_metric: {tuning_metric}')
+                print('}\n\n')
+                i += 1
+        
+        # Return Loss
+        return {'loss': -tuning_metric, 'status': STATUS_OK}
+        # except Exception as e:
+        #     LOGGER.warning(
+        #         'Skipping iteration.\n'
+        #         'Exception: %s\n', e
+        #     )
+        #         # f'Parameters:\n{parameters}\n\n')
+        #     return {'loss': np.inf, 'status': STATUS_OK}
 
     def reset_dev_lfm_models(
         self,

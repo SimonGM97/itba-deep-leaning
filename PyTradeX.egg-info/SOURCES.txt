@@ -53,10 +53,6 @@ PyTradeX/utils/pipeline/pipeline_helper.py
 PyTradeX/utils/trading/__init__.py
 PyTradeX/utils/trading/trading_helper.py
 config/config.yaml
-docker/docker-compose.yaml
-docker/app/Dockerfile
-docker/data_processing/Dockerfile
-docker/trading/Dockerfile
 docs/.$AWS Architecture.drawio.bkp
 docs/.$AWS Architecture.drawio.dtmp
 docs/.$Trading Strategy.drawio.bkp

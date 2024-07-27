@@ -931,7 +931,7 @@ class DataExtractor(DataCleaner):
                 col.startswith('on_chain')
                 or col.startswith('other_coins')
             ):
-                return 0.05
+                return 0.055
             if col.startswith('long_short'):
                 if self.coin_name == 'BTC':
                     return 0.9

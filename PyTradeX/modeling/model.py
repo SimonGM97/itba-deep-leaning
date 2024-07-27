@@ -28,6 +28,8 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import accuracy_score
 
 # Deep learning
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
 # from darts.models.forecasting.nbeats import NBEATSModel
 # from darts import TimeSeries, concatenate
 # from keras.models import Sequential

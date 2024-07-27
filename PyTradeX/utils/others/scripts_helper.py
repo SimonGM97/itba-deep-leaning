@@ -1,7 +1,6 @@
 #!~/pytradex_venv/bin/python
 from PyTradeX.config.params import Params
 from PyTradeX.utils.general.client import BinanceClient
-from PyTradeX.data_warehousing.data_warehouse_manager import DataWarehouseManager
 from PyTradeX.utils.general.logging_helper import logging
 import inspect
 from typing import Any
@@ -161,8 +160,6 @@ def retrieve_params(workflow: str) -> dict:
         
         tuning_params: dict = modeling_vars.get('tuning_params')
         updating_params: dict = modeling_vars.get('updating_params')
-        drift_params: dict = modeling_vars.get('drift_params')
-        serving_params: dict = modeling_vars.get('serving_params')
         
         return {
             'intervals': intervals,
@@ -174,41 +171,9 @@ def retrieve_params(workflow: str) -> dict:
             'trading_params': trading_params,
 
             'tuning_params': tuning_params,
-            'updating_params': updating_params,
-            'drift_params': drift_params,
-            'serving_params': serving_params
+            'updating_params': updating_params
         }
 
-    elif file_name == 'data_warehousing.py':
-        # Retrieve script variables
-        workflow_vars: dict = getattr(Params, workflow)
-        data_warehousing_vars: dict = workflow_vars.get('data_warehousing')
-
-        # Extract Params attrs
-        general_params: dict = getattr(Params, 'general_params')
-
-        # Extract parameters
-        intervals: str = general_params.get('intervals')
-
-        cleaning_params: dict = data_warehousing_vars.get('cleaning_params')
-        update_expectations: bool = data_warehousing_vars.get('update_expectations')
-        populating_params: dict = data_warehousing_vars.get('populating_params')
-
-        debug: bool = data_warehousing_vars.get('debug')
-
-        # Instanciate DataWarehouseManager
-        DWM = DataWarehouseManager(intervals=intervals)
-        
-        return {
-            'DWM': DWM,
-
-            'cleaning_params': cleaning_params,
-            'update_expectations': update_expectations,
-            'populating_params': populating_params,
-
-            'debug': debug
-        }
-    
     else:
         raise Exception(f'Invalid "file_name" was extracted: {file_name}.\n')
 

@@ -9,7 +9,6 @@ from PyTradeX.data_processing.feature_selector import FeatureSelector
 from PyTradeX.modeling.model import Model
 from PyTradeX.modeling.model_registry import ModelRegistry
 from PyTradeX.modeling.model_tuning import ModelTuner
-from PyTradeX.modeling.drift import Drift
 from PyTradeX.pipeline.ml_pipeline import MLPipeline
 
 import pandas as pd
@@ -40,9 +39,7 @@ def modeling_job(
     trading_params: dict = None,
     
     tuning_params: dict = None,
-    updating_params: dict = None,
-    drift_params: dict = None,
-    serving_params: dict = None,
+    updating_params: dict = None
 ):
     # Tune models
     if (
@@ -66,18 +63,20 @@ def modeling_job(
             update_GFM_train_coins(
                 ml_datasets=ml_datasets,
                 intervals=intervals,
+                logger=LOGGER,
                 debug=tuning_params.get('debug')
             )
-
+        
         # Update ltp_lsl_stp_ssl
         if tuning_params.get('update_ltp_lsl_stp_ssl'):
             update_ltp_lsl_stp_ssl(
                 coin_name=None,
                 intervals=intervals,
                 trading_metric_type='avg_ret',
+                plot_returns=False,
                 debug=tuning_params.get('debug')
             )
-
+        
         # Load FeatureSelector
         FS = FeatureSelector(
             intervals=intervals,
@@ -94,7 +93,7 @@ def modeling_job(
             ml_params=ml_params,
             trading_params=trading_params
         )
-
+        
         # Run tune_models method
         model_tuner.tune_models(
             ml_datasets=ml_datasets,
@@ -253,37 +252,6 @@ def modeling_job(
 
         # Delete ml_datasets from memory
         del ml_datasets
-    
-    # Measure drift
-    if (
-        drift_params is not None 
-        and drift_params.get('measure_drift')
-    ):
-        # Instanciate Drift
-        drift = Drift(
-            intervals=intervals,
-            expected_monthly_avg_ret=drift_params.get('expected_monthly_avg_ret'),
-            expected_acc=drift_params.get('expected_acc'),
-            avg_ret_certainty_threshold=drift_params.get('avg_ret_certainty_threshold'),
-            acc_certainty_threshold=drift_params.get('acc_certainty_threshold'),
-            cum_ret_certainty_threshold=drift_params.get('cum_ret_certainty_threshold'),
-            ml_params=ml_params,
-            TA_start_date=data_params.get('TA_start_date'),
-            debug=drift_params.get('debug')
-        )
 
-        # Run 
-        drift.drift_pipeline(
-            days_to_eval=drift_params.get('days_to_eval'),
-            recreate_sim=drift_params.get('recreate_sim'),
-            debug=drift_params.get('debug')
-        )
-    
-    # Serve model
-    if (
-        serving_params is not None 
-        and serving_params.get('serve_model')
-    ):
-        pass
 
     
