@@ -1,8 +1,0 @@
-#!/Users/simongarciamorillo/Library/CloudStorage/OneDrive-Personal/Documents/ITBA/Deep Learning/Trabajo Final/itba-deep-leaning/.itba_dl/bin/python
-# -*- coding: UTF-8 -*-
-from __future__ import print_function, division, absolute_import
-
-from numba.misc.numba_entry import main
-
-if __name__ == "__main__":
-    main()

@@ -7,7 +7,7 @@ __pycache__/
 **/__pycache__/
 
 # Virtual Environment
-.pytradex_venv/
+.itba_dl/
 
 # Compiled Python files
 *.pyc
