@@ -1,0 +1,57 @@
+# Python
+__pycache__
+__pycache__/
+*__pycache__
+*__pycache__/
+**/__pycache__
+**/__pycache__/
+
+# Virtual Environment
+.pytradex_venv/
+
+# Compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# Editor-specific files
+.vscode/
+.idea/
+
+# System-specific files
+.DS_Store
+
+# IDE and editor specific files
+.vscode/
+.idea/
+
+# AWS credentials
+.aws/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Test
+.pytest_cache/
+
+# Archive
+.archive/
+
+# Keys
+# config/Keys.txt
+
+# Dummy
+dummy*
+dummy.py
+dummy.ipynb
+dummy_bucket/
+__archive/
+*.csv
+*.xlsx
+*.parquet
+
+# AWS CLI
+AWSCLIV2.pkg
+
+# zip files
+pytradex_lambda.zip
