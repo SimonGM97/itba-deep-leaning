@@ -1,0 +1,26 @@
+# ECR
+export ECR_REPOSITORY_NAME=pytradex-ecr
+export ECR_REPOSITORY_URI=097866913509.dkr.ecr.sa-east-1.amazonaws.com
+export REGION=sa-east-1
+
+# CodeCommit
+export CODE_COMMIT_REPOSITORY_NAME=PyTradeX
+export CODE_COMMIT_REPOSITORY_URI=https://git-codecommit.sa-east-1.amazonaws.com/v1/repos/PyTradeX
+export CODE_COMMIT_PASSPHRASE=arrelocoo
+
+# IAM
+export IAM_USERNAME=simon.garcia.morillo
+
+# AWS Access
+export AWS_ACCESS_KEY_ID=AKIARNSKSS3SQZ3K7QW2
+export AWS_SECRET_ACCESS_KEY=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
+
+# BINANCE
+export BINANCE_API_KEY_0=gAjCpz0reR3N1S81BWVEo9v63Nz4K6iq55wjYrL7aPO9R013mJBvfeT3yH401luh
+export BINANCE_API_SECRET_0=SsdLuLH8Nq3KIaIw5FIqSUSlLTxhG53ItOVHAoCfHZVYRGeZbnw2gtbucU6vLxjq
+
+# LunarCrush
+export LUNAR_CRUSH_API_KEY=imhsiympkj8e55rufld8oq1ecl9yupntkk4m3ep
+
+# KXY
+export KXY_API_KEY=pXdUYRKRYO9T0tLQ6jrU73oUZuwwMlOljD8Ob0T4

@@ -1,0 +1,91 @@
+Metadata-Version: 2.1
+Name: PyTradeX
+Version: 1.0.0
+Summary: PyTradeX is a propietary crypto currency forecasting library that is leveraged to run a trading bot 
+Author: Simón P. García Morillo
+Author-email: simongmorillo1@gmail.com
+License:                               Proprietary License
+        
+        This software is proprietary and confidential. The author and copyright holder of this 
+        software is Simón Pedro García Morillo, DNI: 40.847.093.
+        
+        Permission is hereby granted to review the source code solely for the purpose of 
+        understanding its implementation. Any other use, reproduction, distribution, or 
+        modification of this software, in whole or in part, without the explicit written 
+        consent of Simón Pedro García Morillo, is strictly prohibited.
+        
+        No license, whether express or implied, is granted for any other purpose or to any other 
+        person.
+        
+        For inquiries regarding licensing or use of this software, please contact 
+        simongmorillo1@gmail.com.
+        
+        Copyright © 2023-2030 by Better Trade Group. All rights reserved.
+License-File: LICENSE
+
+<div align="center">
+<img src="./resources/logos/idea_4/logo_1_cut.jpeg" width="350">
+</div>
+
+&nbsp;
+&nbsp;
+# PyTradeX
+PyTradeX is a propietary crypto currency forecasting library that is leveraged to run a trading bot that operates on Binance, trading cryptocurrency futures while following an ML based trading strategy.
+
+&nbsp;
+# Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+
+&nbsp;
+# Installation
+
+1. Install the AWS CLI v2 (if it's not already installed)
+```bash
+curl "https://awscli.amazonaws.com/AWSCLIV2.pkg" -o "AWSCLIV2.pkg"
+sudo installer -pkg ./AWSCLIV2.pkg -target /
+```
+2. Set up the IAM credentials using aws configure:
+```bash
+aws configure
+```
+```
+AWS Access Key ID: AWS_ACCESS_KEY_ID
+AWS Secret Access Key: AWS_SECRET_ACCESS_KEY
+Default region name: sa-east-1
+Default output format: json
+```
+3. Clone the `PyTradeX` CodeCommit repository:
+```bash
+git clone https://github.com/SimonGM97/itba-deep-leaning.git
+```
+4. Create & activate python virtual environment:
+```bash
+python -m venv .itba_dl
+source .itba_dl/bin/activate
+```
+5. Install the PyTradeX module in "editable" mode:
+```bash
+pip install -e .
+```
+  - *Note that this command will also install the dependencies, specified in `requirements.txt`.*
+6. Install & run the [Docker Desktop](https://docs.docker.com/engine/install/) application (if it's not already installed). 
+7. Set the `ECR` environment variables to pull images from the `pytradex-ecr` ECR repository:
+```bash
+export ECR_REPOSITORY_NAME=pytradex-ecr
+export ECR_REPOSITORY_URI=097866913509.dkr.ecr.sa-east-1.amazonaws.com
+export REGION=sa-east-1
+```
+8. Pull the docker images stored in the `ed-ml-docker` dockerhub repository:
+```
+chmod +x ./scripts/bash/image_pulling.sh
+./scripts/bash/image_pulling.sh
+```
+- Note that this will pull the following docker images:
+  - `data_processing_image_v1.0.0`
+  - `model_tuning_image_v1.0.0`
+  - `model_updating_image_v1.0.0`
+  - `model_serving_image_v1.0.0`
+  - `inference_image_v1.0.0`
+  - `run_app_image_v1.0.0`

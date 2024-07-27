@@ -1,0 +1,24 @@
+# EventBridge - Trading Round
+EventBridge
+Events
+Rules
+Create rule
+Name: trading-round-trigger
+Description: Rule designed to trigger a Trading Round every 30 minutes
+Event: default
+Rule type: Schedule
+Continue in EventBridge Scheduler
+Occurrence: Recurring schedule
+Schedule: Cron-based schedule
+cron: 29/30 0-23 ? * * *
+Flexible time window: Off
+Time zone: (UTC+00:00) UTC
+Next
+Target: Templated targets | AWS Lambda Invoke
+Lambda function: data_processing
+Payload: {
+    "step_function": "trading_round"
+}
+Next
+Action after schedule completion: NONE
+

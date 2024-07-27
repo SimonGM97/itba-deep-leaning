@@ -1,0 +1,34 @@
+version: '4'
+
+services:
+  data_processing:
+    image: ${USERNAME}/${REPOSITORY_NAME}:data_processing_${VERSION}
+    container_name: data_processing_container_${VERSION}
+    volumes:
+      - ${HOST_PATH}:/app
+
+  model_tuning:
+    image: ${USERNAME}/${REPOSITORY_NAME}:model_tuning_${VERSION}
+    container_name: model_tuning_container_${VERSION}
+    network_mode: my_network
+    ports:
+      - "5050:5050"
+    volumes:
+      - ${HOST_PATH}:/app
+    command: --max_evals ${MAX_EVALS}
+    depends_on:
+      data_processing:
+        condition: service_completed_successfully
+
+  model_updating:
+    image: ${USERNAME}/${REPOSITORY_NAME}:model_updating_${VERSION}
+    container_name: model_updating_container_${VERSION}
+    volumes:
+      - ${HOST_PATH}:/app
+    depends_on:
+      model_tuning:
+        condition: service_completed_successfully
+
+# networks:
+#   my_network:
+#     # configuration for your network...

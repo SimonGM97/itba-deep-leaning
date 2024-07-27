@@ -1,0 +1,841 @@
+env_params:
+  prod_env: false
+  compute_env: sagemaker # local
+  storage_env: s3 # s3, file_system
+
+general_params:
+  exchange: binance
+  order_type: maker
+  intervals: 60min # 30min | 60min
+  stable_coin: USDC
+
+log_params:
+  level: INFO # INFO
+  txt_fmt: null # default
+  json_fmt: null # default
+  filter_lvls: null
+  log_file: null # no log file will be written
+  backup_count: null
+
+# NON-WORKFLOW PARAMS
+
+data_params:
+  # Saving params
+  partition_cols:
+    # - year_quarter
+    # - year_bimester
+    - year_month
+  
+  # General data params
+  lag: 1
+  features: true
+  periods: 
+    30min: 24000
+    60min: 15000
+  other_coins_n: 8
+  z_threshold: 4.0
+
+  # Update params
+  new_n: 120
+  
+  # Data Shift params
+  save_distance: 
+    30min: 144 # 48 * 3
+    60min: 72 # 24 * 3
+  compare_distance: 24
+  shift_threshold: 0.015
+  max_shift: 12
+
+  # Data Refiner params
+  lag_periods:
+    30min:
+      - 1
+      - 2
+      - 3
+      - 5
+      - 11 
+      - 23 # 12 hs ago
+      - 47 # 1 day ago
+      - 335 # one week ago
+      - 1439 # 30 days ago
+    60min:
+      - 1
+      - 2
+      - 3
+      - 5
+      - 11 # half a day
+      - 23 # one day ago
+      - 167 # one week ago
+      - 719 # one month ago
+  rolling_windows:
+    30min:
+      - 12
+      - 24
+      - 48
+    60min:
+      - 6
+      - 12
+      - 24
+
+  # Feature Selection params
+  tf_q_thresh: 0.33
+  ff_thresh: 0.95
+  cat_perc: 0.35
+  reduce_cm_datasets: 0.8
+
+  rfe_best_n: 170
+
+  reg_k_best: 220
+  binary_k_best: 120
+
+  tsfresh_p_value: 0.035
+  tsfresh_best_n: 150 # 0.1
+
+  binary_target_p_value: 0.03
+  binary_target_n: 150 # 0.1
+
+  max_features: 630 # 0.03
+
+  # Others
+  mbp:
+    1d: 1440
+    60min: 60
+    30min: 30
+    15min: 15
+
+  yfinance_params:
+    1d: 
+      period: max
+      interval: 1d
+    60min: 
+      period: 1mo
+      interval: 30m # 30m
+    30min:
+      period: 1mo
+      interval: 30m
+    15min:
+      period: 1mo
+      interval: 15m
+
+ml_params:
+  refit_model: true
+  refit_freq: 0.03
+  divisions: 3
+
+  train_test_split: 0.85
+  lfm_train_val_split: 0.75
+  gfm_train_val_split: 0.85
+
+  n_candidates: 12
+  max_evals: 300 # 3500
+  timeout_mins: 720 # 720
+
+  importance_method: native # shap
+  
+  algorithms: 
+    # - naive_lv
+    # - naive_ma
+    # - expo_smooth # takes too long & bad results
+    # - sarimax # takes too long & bad results
+    - random_forest
+    - lightgbm
+    - xgboost
+    # - prophet # takes too long
+    # - orbit
+    # - lstm
+    # - n_beats 
+    # - tft
+
+  methods:
+    # - price
+    - return
+    - acceleration
+    - jerk
+
+trading_params:
+  # General trading params
+  max_leverage: 1
+
+  # Trading table params
+  min_exposure: 0.5
+
+  # Performance params
+  smooth_returns: false
+  return_weight: null
+  min_performance: 5.0
+
+fixed_params:
+  target_columns:
+    - target_price
+    - target_return
+    - target_acceleration
+    - target_jerk
+    
+  raw_data_columns:
+    - target_price
+    - target_return
+    - target_acceleration 
+    - target_jerk
+
+    - coin_price
+    - coin_open
+    - coin_high 
+    - coin_low 
+    - coin_return 
+    - coin_acceleration
+    - coin_jerk
+    - ta_volume 
+
+    - long_short_global_long_perc
+    - long_short_global_long_short_ratio 
+    - long_short_top_global_ratio
+    - long_short_top_traders_long_perc
+    - long_short_top_traders_long_short_ratio
+
+    - on_chain_transaction_rate_per_second
+
+    - sentiment_lc_circulating_supply #
+    - sentiment_lc_galaxy_score
+    - sentiment_lc_volatility #
+    - sentiment_lc_alt_rank
+    # - sentiment_lc_market_dominance
+    - sentiment_lc_contributors_active #
+    - sentiment_lc_posts_active #
+    - sentiment_lc_interactions #
+    - sentiment_lc_social_dominance #
+
+    - stock_DJI_price
+    - stock_GSPC_price
+    - stock_IXIC_price
+    - stock_NDX_price
+    - stock_NYA_price
+    - stock_RUT_price
+    - stock_VIX_price
+    - stock_XAX_price
+
+  full_coin_list:
+    - BTC
+    - ETH
+    - ADA
+    - XRP
+    - BNB
+    - DOGE
+    - SOL
+    - GMT
+    - AVAX
+    - NEAR
+    - APE
+    - FTM
+    # - DODO
+    - GALA
+    - GAL
+    - TRX
+    - LTC
+    - DOT
+    - ICP
+    # - WAVES
+    - LINK
+    - SAND
+    - MATIC
+    - ETC
+    - UNI
+    # - ANC
+
+  full_stable_coin_list:
+    - USDT
+    - USDC
+
+  full_stock_list:
+    - GSPC
+    - DJI
+    - IXIC
+    - NYA
+    - XAX
+    - VIX
+    - NDX
+    - RUT
+
+test_params:
+  # Test tolerances
+  prediced_returns_tolerance: 0.15
+  market_perc_tolerance: 0.02
+  excess_orders_tolerance: 0.02
+
+  # Data params
+  overwrite_data: true
+
+  # Mock params
+  mock_coin: SOL
+  mock_periods: 1300
+  re_create_mocked_asset: true # False
+  reset_expected_asset: true # False
+
+  # Debug
+  debug: false
+
+# WORKFLOW VARS
+
+# Model Building Workflow
+model_building:
+  # Data Processing Job
+  data_processing:
+    # General params
+    update_client: true
+    update_correlations: true
+    update_lc_ids: true
+    overwrite: true
+    debug: false
+
+    # Collective Data params
+    collective_data_update_params:
+      update_data: true
+      update_expectations: true
+      validate_data: true
+
+    # Data Extraction params
+    data_extractor_update_params:
+      update_data: true
+      force_update: true
+      update_expectations: true
+      validate_data: true
+      save_backup: true
+      save: true
+
+    # Data Cleaning params
+    data_cleaner_update_params:
+      update_data: false
+      rewrite_data: true
+      update_expectations: true
+      update_outliers_dict: true
+      update_imputers: true      
+      validate_data: true
+      save: true
+
+    # Data Shifting params
+    data_shifter_update_params:
+      update_data: false
+      rewrite_data: true
+      update_expectations: true
+      update_shift_dict: true
+      record_df: true
+      validate_data: true
+      save: true
+
+    # Data Refining params
+    data_refiner_update_params:
+      update_data: false
+      rewrite_data: true
+      update_expectations: true
+      update_outliers_dict: true
+      validate_data: true
+      save: true
+
+    # Feature Selecion params
+    selected_features_update_params:
+      reduce_comb_datasets: 
+        30min: 0.35
+        60min: 0.55
+      re_create_comb_datasets: true
+      update_primary_filter: true
+      update_selected_features: true
+      validate_selected_features: true
+      save: true
+
+    # Data Transforming params
+    data_transformer_update_params:
+      update_data: false
+      rewrite_data: true
+      update_expectations: true
+      refit_transformers: true
+      validate_data: true
+      validate_transformers: true
+      update_consistency_storage: true
+      save: true
+
+  # Modeling Job
+  modeling:
+    # Tunning params
+    tuning_params:
+      tune_models: true
+
+      load_datasets_from_local: false
+      save_datasets_to_local: false
+
+      update_GFM_train_coins: true
+      update_ltp_lsl_stp_ssl: true
+
+      reset_dev_lfm_models: false
+      tune_lfm_models: true
+      reduced_tuning_periods:
+        30min: 18000
+        60min: 14000
+      tune_gfm_models: true
+      evaluate_models: true
+
+      debug: true
+      deep_debug: false
+
+    # Updating params
+    updating_params: null
+
+    # Drift params
+    drift_params: null
+
+    # Serving params
+    serving_params: null
+
+# Trading Round Workflow
+trading_round:
+  # Trading Job
+  trading:
+    skip_wait: false
+    debug: true
+
+  # Data Processing Job
+  data_processing:
+    # General params
+    update_client: false
+    update_correlations: false
+    update_lc_ids: false
+    overwrite: false
+    debug: false
+
+    # Collective Data params
+    collective_data_update_params:
+      update_data: true
+      update_expectations: false
+      validate_data: true
+
+    # Data Extraction params
+    data_extractor_update_params:
+      update_data: true
+      force_update: false
+      update_expectations: false
+      validate_data: true
+      save_backup: true
+      save: true
+
+    # Data Cleaning params
+    data_cleaner_update_params:
+      update_data: true
+      rewrite_data: false
+      update_expectations: false
+      update_outliers_dict: false
+      update_imputers: false      
+      validate_data: true
+      save: true
+
+    # Data Shifting params
+    data_shifter_update_params:
+      update_data: true
+      rewrite_data: false
+      update_expectations: false
+      update_shift_dict: false
+      record_df: true
+      validate_data: true
+      save: true
+
+    # Data Refining params
+    data_refiner_update_params: null
+
+    # Feature Selecion params
+    selected_features_update_params: null
+
+    # Data Transforming params
+    data_transformer_update_params: null
+
+  # Data Warehousing Job
+  data_warehousing:
+    debug: true
+
+    # Cleaning params
+    cleaning_params:
+      clean_tables: false
+      table_names: null
+
+    # Expectations params
+    update_expectations: false
+
+    # Populating params
+    populating_params:
+      # Dimensions tables
+      register_new_dim_objects: false
+      populate_models: false
+
+      # Facts tables
+      populate_fact_tables: true
+
+      populate_futures_balances: true
+      populate_asset_valuations: true
+      populate_futures_income_history: true
+      populate_futures_orders_history: true
+      collect_new_inferences: true
+      collect_new_delays: true
+
+# Model Updating Workflow
+model_updating:
+  # Data Processing Job
+  data_processing:
+    # General params
+    update_client: true
+    update_correlations: false
+    update_lc_ids: true
+    overwrite: false
+    debug: false
+
+    # Collective Data params
+    collective_data_update_params: null
+
+    # Data Extraction params
+    data_extractor_update_params: null
+
+    # Data Cleaning params
+    data_cleaner_update_params: null
+
+    # Data Shifting params
+    data_shifter_update_params: null
+
+    # Data Refining params
+    data_refiner_update_params:
+      update_data: true
+      rewrite_data: false
+      update_expectations: false
+      update_outliers_dict: false
+      validate_data: true
+      save: true
+
+    # Feature Selecion params
+    selected_features_update_params: null
+
+    # Data Transforming params
+    data_transformer_update_params:
+      update_data: true
+      rewrite_data: false
+      update_expectations: false
+      refit_transformers: false
+      validate_data: true
+      validate_transformers: true
+      update_consistency_storage: true
+      save: true
+
+  # Modeling Job
+  modeling:
+    # Tunning params
+    tuning_params: null
+
+    # Updating params
+    updating_params:
+      update_models: true
+
+      load_datasets_from_local: false
+      save_datasets_to_local: false
+
+      re_set_models: false
+
+      update_GFM_train_coins: false
+      update_ltp_lsl_stp_ssl: false
+      
+      update_residuals: false
+      optimize_trading_parameters: false
+      update_feature_importance: true
+      ignore_last_update_periods: 12
+
+      update_champion: false
+      debug: false
+
+    # Drift params
+    drift_params:
+      measure_drift: false # true
+      expected_monthly_avg_ret: 0.1
+      expected_acc: 0.52
+      avg_ret_certainty_threshold: 0.05
+      acc_certainty_threshold: 0.05
+      cum_ret_certainty_threshold: 0.05
+      days_to_eval: 30
+      recreate_sim: false
+
+      debug: false
+
+    # Serving params
+    serving_params: null
+
+  # Data Warehousing Job
+  data_warehousing:
+    debug: true
+
+    # Cleaning params
+    cleaning_params:
+      clean_tables: false
+      table_names: null
+
+    # Expectations params
+    update_expectations: false
+
+    # Populating params
+    populating_params:
+      # Dimensions tables
+      register_new_dim_objects: false
+      populate_models: true
+
+      # Facts tables
+      populate_fact_tables: false
+
+      populate_futures_balances: false
+      populate_asset_valuations: false
+      populate_futures_income_history: false
+      populate_futures_orders_history: false
+      collect_new_inferences: false
+      collect_new_delays: false
+
+repair:
+  # Data Processing Job
+  data_processing:
+    # General params
+    update_client: true
+    update_correlations: false
+    update_lc_ids: true
+    overwrite: true
+    repair_coins: # null
+      - UNI
+    debug: false
+
+    # Collective Data params
+    collective_data_update_params:
+      update_data: true
+      update_expectations: false
+      validate_data: true
+
+    # Data Extraction params
+    data_extractor_update_params:
+      update_data: true
+      force_update: false
+      update_expectations: false
+      validate_data: true
+      save_backup: true
+      save: true
+
+    # Data Cleaning params
+    data_cleaner_update_params:
+      update_data: false
+      rewrite_data: true
+      update_expectations: false
+      update_outliers_dict: true
+      update_imputers: false      
+      validate_data: true
+      save: true
+
+    # Data Shifting params
+    data_shifter_update_params:
+      update_data: false
+      rewrite_data: true
+      update_expectations: false
+      update_shift_dict: false
+      record_df: true
+      validate_data: true
+      save: true
+
+    # Data Refining params
+    data_refiner_update_params:
+      update_data: false
+      rewrite_data: true
+      update_expectations: false
+      update_outliers_dict: false
+      validate_data: true
+      save: true
+
+    # Feature Selecion params
+    selected_features_update_params: null
+
+    # Data Transforming params
+    data_transformer_update_params:
+      update_data: false
+      rewrite_data: true
+      update_expectations: false
+      refit_transformers: false
+      validate_data: true
+      validate_transformers: true
+      update_consistency_storage: true
+      save: true
+
+# --Default Workflow--
+default:
+  # Trading Job
+  trading:
+    skip_wait: true
+    debug: true
+
+  # Data Processing Job
+  data_processing:
+    # General params
+    update_client: true
+    update_correlations: false
+    update_lc_ids: true
+    overwrite: true
+    debug: false
+
+    # Collective Data params
+    collective_data_update_params:
+      update_data: true
+      update_expectations: true
+      validate_data: true
+
+    # Data Extraction params
+    data_extractor_update_params:
+      update_data: true
+      force_update: false
+      update_expectations: true
+      validate_data: true
+      save_backup: true
+      save: true
+
+    # Data Cleaning params
+    data_cleaner_update_params:
+      update_data: true
+      rewrite_data: true
+      update_expectations: true
+      update_outliers_dict: true
+      update_imputers: true      
+      validate_data: true
+      save: true
+
+    # Data Shifting params
+    data_shifter_update_params:
+      update_data: true
+      rewrite_data: true
+      update_expectations: true
+      update_shift_dict: false
+      record_df: true
+      validate_data: true
+      save: true
+
+    # Data Refining params
+    data_refiner_update_params:
+      update_data: false
+      rewrite_data: false
+      update_expectations: false
+      update_outliers_dict: false
+      validate_data: false
+      save: false
+
+    # Feature Selecion params
+    selected_features_update_params:
+      reduce_comb_datasets: 
+        30min: 0.35
+        60min: 0.55
+      re_create_comb_datasets: false
+      update_primary_filter: false
+      update_selected_features: false
+      validate_selected_features: false
+      save: false
+
+    # Data Transforming params
+    data_transformer_update_params:
+      update_data: false
+      rewrite_data: false
+      update_expectations: false
+      refit_transformers: false
+      validate_data: false
+      validate_transformers: false
+      update_consistency_storage: false
+      save: false
+
+  # Modeling Job
+  modeling:
+    # Tunning params
+    tuning_params:
+      tune_models: true
+
+      load_datasets_from_local: false
+      save_datasets_to_local: false
+
+      update_GFM_train_coins: false
+      update_ltp_lsl_stp_ssl: false
+
+      reset_dev_lfm_models: false
+      tune_lfm_models: true
+      reduced_tuning_periods:
+        30min: 18000
+        60min: 14000
+      tune_gfm_models: true
+      evaluate_models: true
+
+      debug: false
+      deep_debug: false
+
+    # Updating params
+    updating_params:
+      update_models: true
+
+      load_datasets_from_local: false
+      save_datasets_to_local: false
+
+      re_set_models: false
+
+      update_GFM_train_coins: false
+      update_ltp_lsl_stp_ssl: false
+      
+      update_residuals: false
+      optimize_trading_parameters: false
+      update_feature_importance: true
+      ignore_last_update_periods: 12
+
+      update_champion: false
+      debug: false
+
+    # Drift params
+    drift_params:
+      measure_drift: false # true
+      expected_monthly_avg_ret: 0.1
+      expected_acc: 0.52
+      avg_ret_certainty_threshold: 0.05
+      acc_certainty_threshold: 0.05
+      cum_ret_certainty_threshold: 0.05
+      days_to_eval: 30
+      recreate_sim: false
+
+      debug: false
+
+    # Serving params
+    serving_params:
+      serve_model: false
+
+  # Data Warehousing Job
+  data_warehousing:
+    debug: true
+
+    # Cleaning params
+    cleaning_params:
+      clean_tables: false # false
+      table_names: null
+        # - fees
+        # - clients
+        # - accounts
+        # - models
+
+        # - futures_balances
+        # - asset_valuations
+        # - futures_income_history
+        # - futures_orders_history
+        # - inferences
+        # - delays
+
+    # Expectations params
+    update_expectations: false # false
+
+    # Populating params
+    populating_params:
+      # Dimensions tables
+      register_new_dim_objects: false # false
+      populate_models: true # false
+
+      # Facts tables
+      populate_fact_tables: false # false
+
+      populate_futures_balances: false # false
+      populate_asset_valuations: false # false
+      populate_futures_income_history: false # false
+      populate_futures_orders_history: false # false
+      collect_new_inferences: false # false
+      collect_new_delays: false # false
+
+# 

@@ -1,0 +1,237 @@
+LICENSE
+Makefile
+README.md
+requirements.txt
+setup.py
+PyTradeX/__init__.py
+PyTradeX.egg-info/PKG-INFO
+PyTradeX.egg-info/SOURCES.txt
+PyTradeX.egg-info/dependency_links.txt
+PyTradeX.egg-info/requires.txt
+PyTradeX.egg-info/top_level.txt
+PyTradeX/config/__init__.py
+PyTradeX/config/params.py
+PyTradeX/data_processing/__init__.py
+PyTradeX/data_processing/boruta_py.py
+PyTradeX/data_processing/data_cleaner.py
+PyTradeX/data_processing/data_extractor.py
+PyTradeX/data_processing/data_processor.py
+PyTradeX/data_processing/data_refiner.py
+PyTradeX/data_processing/data_shifter.py
+PyTradeX/data_processing/data_transformer.py
+PyTradeX/data_processing/feature_selector.py
+PyTradeX/data_warehousing/__init__.py
+PyTradeX/data_warehousing/data_warehouse.py
+PyTradeX/data_warehousing/data_warehouse_manager.py
+PyTradeX/data_warehousing/trading_analyst.py
+PyTradeX/modeling/__init__.py
+PyTradeX/modeling/drift.py
+PyTradeX/modeling/model.py
+PyTradeX/modeling/model_registry.py
+PyTradeX/modeling/model_tuning.py
+PyTradeX/modeling/modeller.py
+PyTradeX/pipeline/__init__.py
+PyTradeX/pipeline/ml_pipeline.py
+PyTradeX/streamlit/__init__.py
+PyTradeX/streamlit/drift_analysis_page.py
+PyTradeX/streamlit/home_page.py
+PyTradeX/streamlit/model_registry_page.py
+PyTradeX/trading/__init__.py
+PyTradeX/trading/ptx_bot.py
+PyTradeX/trading/trading_table.py
+PyTradeX/utils/__init__.py
+PyTradeX/utils/data_processing/__init__.py
+PyTradeX/utils/data_processing/collective_data.py
+PyTradeX/utils/data_processing/data_expectations.py
+PyTradeX/utils/data_processing/frequency_transformer.py
+PyTradeX/utils/data_processing/repair_helper.py
+PyTradeX/utils/general/__init__.py
+PyTradeX/utils/general/client.py
+PyTradeX/utils/general/logging_helper.py
+PyTradeX/utils/modeling/__init__.py
+PyTradeX/utils/modeling/model_expectations.py
+PyTradeX/utils/modeling/modeller_helper.py
+PyTradeX/utils/others/__init__.py
+PyTradeX/utils/others/file_system_helper.py
+PyTradeX/utils/others/raw_data_shapes_updater.py
+PyTradeX/utils/others/s3_helper.py
+PyTradeX/utils/others/scripts_helper.py
+PyTradeX/utils/others/timing.py
+PyTradeX/utils/pipeline/__init__.py
+PyTradeX/utils/pipeline/pipeline_helper.py
+PyTradeX/utils/testing/__init__.py
+PyTradeX/utils/testing/test_helper.py
+PyTradeX/utils/trading/__init__.py
+PyTradeX/utils/trading/trading_helper.py
+config/config.yaml
+docker/docker-compose.yaml
+docker/app/Dockerfile
+docker/data_processing/Dockerfile
+docker/trading/Dockerfile
+docs/.$AWS Architecture.drawio.bkp
+docs/.$AWS Architecture.drawio.dtmp
+docs/.$Trading Strategy.drawio.bkp
+docs/.$Trading Strategy.drawio.dtmp
+docs/diagrams/.$Diagrams.drawio.bkp
+docs/diagrams/.$aws_architecture.drawio.bkp
+docs/diagrams/.$data_warehouse.drawio.bkp
+docs/diagrams/.$data_warehouse.drawio_1.dtmp
+docs/diagrams/.$documentation.drawio.bkp
+docs/diagrams/aws_architecture.drawio
+docs/diagrams/data_warehouse.drawio
+docs/diagrams/documentation.drawio
+docs/images/lightgbm_logo.png
+docs/images/random_forest_logo.png
+docs/images/xgboost_logo.png
+docs/instructions/help_to_instal_libraries.docx
+docs/instructions/update_requirements.txt
+docs/notes/CloudWatch setup.txt
+docs/notes/N-Beats Notes.txt
+docs/notes/Notes.docx
+docs/notes/Pipeline Notes.txt
+resources/data_processor_features.xlsx
+resources/coin_images/AAVE_logo.png
+resources/coin_images/ADA_logo.png
+resources/coin_images/ALGO_logo.png
+resources/coin_images/AMP_logo.png
+resources/coin_images/APE_logo.png
+resources/coin_images/ATOM_logo.png
+resources/coin_images/AVAX_logo.png
+resources/coin_images/BNB_logo.png
+resources/coin_images/BTC_logo.png
+resources/coin_images/BUSD_logo.png
+resources/coin_images/DODO_logo.png
+resources/coin_images/DOGE_logo.png
+resources/coin_images/DOT_logo.png
+resources/coin_images/ENJ_logo.png
+resources/coin_images/ETC_logo.png
+resources/coin_images/ETH1_logo.png
+resources/coin_images/ETH_logo.png
+resources/coin_images/FTM_logo.png
+resources/coin_images/GALA_logo.png
+resources/coin_images/GAL_logo.png
+resources/coin_images/GMT_logo.png
+resources/coin_images/GMX_logo.png
+resources/coin_images/ICP_logo.png
+resources/coin_images/LINK_logo.png
+resources/coin_images/LTC_logo.png
+resources/coin_images/LUNA_logo.png
+resources/coin_images/MATIC_logo.png
+resources/coin_images/NEAR_logo.png
+resources/coin_images/OP_logo.png
+resources/coin_images/REN_logo.png
+resources/coin_images/RUNE_logo.png
+resources/coin_images/SAND_LOGO.png
+resources/coin_images/SOL_logo.png
+resources/coin_images/SUPER_logo.png
+resources/coin_images/THETA_logo.png
+resources/coin_images/TRX_logo.png
+resources/coin_images/UNI_logo.png
+resources/coin_images/USDT_logo.png
+resources/coin_images/VET_logo.png
+resources/coin_images/WAVES_logo.png
+resources/coin_images/XRP_logo.png
+resources/coin_reports (old)/15min/AAVE_report.png
+resources/coin_reports (old)/15min/ADA_report.png
+resources/coin_reports (old)/15min/ALGO_report.png
+resources/coin_reports (old)/15min/ATOM_report.png
+resources/coin_reports (old)/15min/AVAX_report.png
+resources/coin_reports (old)/15min/BNB_report.png
+resources/coin_reports (old)/15min/BTC_report.png
+resources/coin_reports (old)/15min/DOT_report.png
+resources/coin_reports (old)/15min/ENJ_report.png
+resources/coin_reports (old)/15min/ETC_report.png
+resources/coin_reports (old)/15min/ETH_report.png
+resources/coin_reports (old)/15min/LINK_report.png
+resources/coin_reports (old)/15min/LUNA_report.png
+resources/coin_reports (old)/15min/MATIC_report.png
+resources/coin_reports (old)/15min/RUNE_report.png
+resources/coin_reports (old)/15min/SOL_report.png
+resources/coin_reports (old)/15min/THETA_report.png
+resources/coin_reports (old)/15min/UNI_report.png
+resources/coin_reports (old)/15min/VET_report.png
+resources/coin_reports (old)/15min/XRP_report.png
+resources/coin_reports (old)/1d/AAVE_report.png
+resources/coin_reports (old)/1d/ADA_report.png
+resources/coin_reports (old)/1d/ALGO_report.png
+resources/coin_reports (old)/1d/ATOM_report.png
+resources/coin_reports (old)/1d/AVAX_report.png
+resources/coin_reports (old)/1d/BNB_report.png
+resources/coin_reports (old)/1d/BTC_report.png
+resources/coin_reports (old)/1d/DOT_report.png
+resources/coin_reports (old)/1d/ENJ_report.png
+resources/coin_reports (old)/1d/ETC_report.png
+resources/coin_reports (old)/1d/ETH_report.png
+resources/coin_reports (old)/1d/LINK_report.png
+resources/coin_reports (old)/1d/LUNA_report.png
+resources/coin_reports (old)/1d/MATIC_report.png
+resources/coin_reports (old)/1d/RUNE_report.png
+resources/coin_reports (old)/1d/SOL_report.png
+resources/coin_reports (old)/1d/THETA_report.png
+resources/coin_reports (old)/1d/UNI_report.png
+resources/coin_reports (old)/1d/VET_report.png
+resources/coin_reports (old)/1d/XRP_report.png
+resources/coin_reports (old)/30min/AAVE_report.png
+resources/coin_reports (old)/30min/ADA_report.png
+resources/coin_reports (old)/30min/ALGO_report.png
+resources/coin_reports (old)/30min/ATOM_report.png
+resources/coin_reports (old)/30min/AVAX_report.png
+resources/coin_reports (old)/30min/BNB_report.png
+resources/coin_reports (old)/30min/BTC_report.png
+resources/coin_reports (old)/30min/DOT_report.png
+resources/coin_reports (old)/30min/ENJ_report.png
+resources/coin_reports (old)/30min/ETC_report.png
+resources/coin_reports (old)/30min/ETH_report.png
+resources/coin_reports (old)/30min/LINK_report.png
+resources/coin_reports (old)/30min/LUNA_report.png
+resources/coin_reports (old)/30min/MATIC_report.png
+resources/coin_reports (old)/30min/RUNE_report.png
+resources/coin_reports (old)/30min/SOL_report.png
+resources/coin_reports (old)/30min/THETA_report.png
+resources/coin_reports (old)/30min/UNI_report.png
+resources/coin_reports (old)/30min/VET_report.png
+resources/coin_reports (old)/30min/XRP_report.png
+resources/logos/idea_1/logo_1.png
+resources/logos/idea_1/logo_2.png
+resources/logos/idea_2/logo_1.png
+resources/logos/idea_3/logo_1.png
+resources/logos/idea_4/logo_1.jpeg
+resources/logos/idea_4/logo_1_cut.jpeg
+resources/logos/idea_4/logo_1_no_background.png
+resources/logos/idea_4/logo_1_no_background_uncut.png
+resources/logos/idea_4/logo_1_no_background_uncut2.png
+resources/logos/idea_4/logo_2.jpeg
+scripts/bash/00_cicd_pipeline.sh
+scripts/bash/01_tests_running.sh
+scripts/bash/02_image_building.sh
+scripts/data_processing/data_processing.py
+scripts/data_warehousing/data_warehousing.py
+scripts/modeling/modeling.py
+scripts/trading/trading.py
+test/__init__.py
+test/test_binance_client/__init__.py
+test/test_binance_client/test_binance_client.py
+test/test_data_processing/__init__.py
+test/test_data_processing/test_data_cleaner.py
+test/test_data_processing/test_data_extractor.py
+test/test_data_processing/test_data_refiner.py
+test/test_data_processing/test_data_shifter.py
+test/test_data_processing/test_data_transformer.py
+test/test_data_processing/test_feature_selector.py
+test/test_data_warehousing/__init__.py
+test/test_data_warehousing/test_data_warehouse_manager.py
+test/test_data_warehousing/test_trading_analyst.py
+test/test_modeling/__init__.py
+test/test_modeling/test_model.py
+test/test_modeling/test_model_registry.py
+test/test_modeling/test_model_tuning.py
+test/test_pipeline/__init__.py
+test/test_pipeline/test_ml_pipeline.py
+test/test_trading/__init__.py
+test/test_trading/test_ptxbot.py
+test/test_trading/test_trading_table.py
+test/utils/__init__.py
+test/utils/test_class.py
+workflows/model_building/model_building_workflow.py
+workflows/model_updating/model_updating_workflow.py
+workflows/trading_round/trading_round_workflow.py

@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: nancorrmp
+Version: 0.23
+Summary: A multiprocessing version of pandas correlation method
+Home-page: https://github.com/bukson/nancorrmp
+Download-URL: https://github.com/bukson/nancorrmp/tarball/0.23
+Author: Michał Bukowski
+Author-email: michal.bukowski@buksoft.pl
+License: MIT
+Keywords: correlation,multiprocessing,pandas
+License-File: LICENSE.txt
+Requires-Dist: pandas
+Requires-Dist: numpy
+
