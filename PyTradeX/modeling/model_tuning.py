@@ -30,31 +30,6 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 warnings.filterwarnings("ignore", message="scipy._lib.messagestream.MessageStream size changed")
 
-"""
-TODO:
-    - Implement Models:
-        - Add NBEATS parameters        
-    - Add mlflow functionality
-    - agregar un early_stopping que frene basado en no progress
-    - ensemble models
-        - pick top performers (on train data) > assign weight to their predictions
-        - make predictions with top performers > decide on up or down using majority vote 
-            (requiere numero impar de modelos) > the forecast will be a weighted average of 
-            the majority
-    - Try new models:
-        - Add prophet parameters
-        - Add Orbit parameters
-"""
-
-# TODO: TRY GPU WHENEVER POSSIBLE!
-# TODO: Random forest is typically created by multiple overfitting trees, where the average of the predictions
-#       have both low variance and low bias. Thus, each tree should have rather high hyperparameters
-#   - Note that increasing n_estimators shouldn't increase overall variance
-# TODO: Boosting models are typically created by multiple simple models with low variance and high bias, that combined
-#       in sequence result in predictions with low bias and low variance. This each tree should have rather low hyperparameters.
-#   - Note that increasing n_estimators does increase overall variance
-
-
 # Get logger
 LOGGER = get_logger(
     name=__name__,
@@ -87,14 +62,14 @@ class ModelTuner:
 
         # Trading Parameters
         'follow_flow': [True, False],
-        'certainty_threshold': [0.55, 0.575, 0.6, 0.65],
+        'certainty_threshold': [0.55], # , 0.575, 0.6, 0.65],
         'tp': [True, False],
         'sl': [True], # False
         # 'long_permission': [True, False],
         # 'short_permission': [True, False],
 
         # lstm
-        'lstm.topology': ['classic', 'bidirectional', 'convolutional'],
+        # 'lstm.topology': ['classic', 'bidirectional', 'convolutional'],
         'lstm.units': [16, 32, 64, 128, 256],
         'lstm.batch_size': [16, 32, 64, 128, 256],
 
@@ -110,11 +85,11 @@ class ModelTuner:
         {
             "algorithm": 'lstm',
             # "lstm.topology": hp.choice('lstm.topology', choice_parameters['lstm.topology']),
-            "lstm.layers": scope.int(hp.quniform('lstm.layers', 1, 10, 1)), 
+            "lstm.layers": scope.int(hp.quniform('lstm.layers', 1, 4, 1)), 
             "lstm.units": scope.int(hp.choice('lstm.units', choice_parameters['lstm.units'])),
             "lstm.dropout": hp.uniform('lstm.dropout', 0.0, 0.5),
             "lstm.recurrent_dropout": hp.uniform('lstm.recurrent_dropout', 0.0, 0.5),
-            "lstm.learning_rate": hp.loguniform('lstm.learning_rate', np.log(0.001), np.log(0.1)),
+            "lstm.learning_rate": hp.loguniform('lstm.learning_rate', np.log(0.001), np.log(0.01)),
             # "lstm.batch_size": scope.int(hp.choice('lstm.batch_size', choice_parameters['lstm.batch_size'])),
         },
 
@@ -194,9 +169,7 @@ class ModelTuner:
 
         # Define load attrs
         self.model_registry: ModelRegistry = None
-
-        self.lfm_models: List[Model] = []
-        self.gfm_models: List[Model] = []       
+        self.models: List[Model] = []       
 
         self.load()
 
@@ -373,7 +346,7 @@ class ModelTuner:
         parameters['trading_parameters']['sl'] = (None, None)
 
         if parameters['tp'] or parameters['sl']:
-            ltp, lsl, stp, ssl = self.ltp_lsl_stp_ssl[parameters['coin_name']]
+            ltp, lsl, stp, ssl = self.ltp_lsl_stp_ssl['ETH'] # [parameters['coin_name']]
             if parameters['tp']:
                 parameters['trading_parameters']['tp'] = (ltp, stp)
             if parameters['sl']:
@@ -411,7 +384,9 @@ class ModelTuner:
             debug=False
         )[0]
 
-        # Add intervals, refit_model & refit_freq to parameters
+        # Add coin_name, intervals, refit_model & refit_freq to parameters
+        if 'coin_name' not in parameters.keys():
+            parameters['coin_name'] = 'ETH'
         if 'version' not in parameters.keys():
             parameters['version'] = '0.0'
         if 'stage' not in parameters.keys():
@@ -422,12 +397,12 @@ class ModelTuner:
         if 'lag' not in parameters.keys():
             parameters['lag'] = self.data_params.get('lag')
         if 'model_class' not in parameters.keys():
-            parameters['model_class'] = 'LFM'
+            parameters['model_class'] = 'GFM' # 'LFM'
         
         if 'refit_model' not in parameters.keys():
-            parameters['refit_model'] = self.ml_params.get('refit_model')
+            parameters['refit_model'] = False # self.ml_params.get('refit_model')
         if 'refit_freq' not in parameters.keys():
-            parameters['refit_freq'] = int(self.ml_params.get('refit_freq') * self.data_params.get('periods'))
+            parameters['refit_freq'] = np.inf # int(self.ml_params.get('refit_freq') * self.data_params.get('periods'))
 
         if 'reverse_forecasts' not in parameters.keys():
             parameters['reverse_forecasts'] = reverse_forecasts
@@ -448,7 +423,7 @@ class ModelTuner:
 
         # Add Selected Features
         if 'selected_features' not in parameters.keys():
-            parameters['selected_features'] = deepcopy(selected_features[parameters['method']])
+            parameters['selected_features'] = deepcopy(selected_features[parameters['method']][:50])
 
         # Update parameters with warm_start params (if it's the first run)
         if self.is_first_round and warm_start_params is not None:
@@ -488,149 +463,95 @@ class ModelTuner:
         warm_start_params: str = None,
         debug: bool = False
     ) -> dict:
-        # try:
-        # Prepare parameters
-        parameters = self.prepare_parameters(
-            parameters=parameters,
-            selected_features=selected_features,
-            warm_start_params=warm_start_params,
-            reverse_forecasts=False,
-            debug=debug # debug
-        )
+        try:
+            # Prepare parameters
+            parameters = self.prepare_parameters(
+                parameters=parameters,
+                selected_features=selected_features,
+                warm_start_params=warm_start_params,
+                reverse_forecasts=False,
+                debug=debug # debug
+            )
+            
+            # Instanciate MLPipeline
+            ml_pipeline = MLPipeline(
+                pipeline_params=parameters,
+                ml_params=self.ml_params,
+                trading_params=self.trading_params
+            )
 
-        # Instanciate MLPipeline
-        ml_pipeline = MLPipeline(
-            pipeline_params=parameters,
-            ml_params=self.ml_params,
-            trading_params=self.trading_params
-        )
+            # Run Model Build Pipeline
+            model: Model = ml_pipeline.build_pipeline(
+                ml_datasets=ml_datasets,
+                reduced_tuning_periods=reduced_tuning_periods,
+                model=None,
+                ignore_update=False,
+                find_val_table=True,
+                re_fit_train_val=False,
+                find_test_table=False,
+                find_opt_table=False,
+                tune_opt_table=False,
+                find_feature_importance=False,
+                debug=debug,
+                dec_timeout=10*60
+            )
 
-        # Run Model Build Pipeline
-        model: Model = ml_pipeline.build_pipeline(
-            ml_datasets=ml_datasets,
-            reduced_tuning_periods=reduced_tuning_periods,
-            model=None,
-            ignore_update=False,
-            find_val_table=True,
-            re_fit_train_val=False,
-            find_test_table=False,
-            find_opt_table=False,
-            tune_opt_table=False,
-            find_feature_importance=False,
-            debug=debug,
-            dec_timeout=4.15*60
-        )
+            # Delete ml_pipeline from memory
+            del ml_pipeline
+            
+            # Update self.lfm_models: Only update dev_models for new models
+            self.update_models(
+                new_candidate=model,
+                debug=debug # debug
+            )
 
-        # Delete ml_pipeline from memory
-        del ml_pipeline
-        
-        # Update self.lfm_models: Only update dev_models for new models
-        self.update_lfm_models(
-            new_candidate=model,
-            debug=debug # debug
-        )
+            # Extract tuning_metric from val_table
+            if model.val_table.is_dummy:
+                tuning_metric = -np.inf
+            else:
+                tuning_metric = model.val_table.tuning_metric
 
-        # Extract tuning_metric from val_table
-        tuning_metric = model.val_table.tuning_metric
+            if debug:
+                i = 1
+                attr_names = [
+                    'model_id', 'coin_name', 'algorithm', 'method', 'pca'
+                ]
+                for model in self.lfm_models[:5]:
+                    print(f"Model n: {i}\n"
+                        "{")
+                    for attr_name in attr_names:
+                        print(f"    '{attr_name}': {getattr(model, attr_name)}")
+                    print(f'    val tuning_metric: {tuning_metric}')
+                    print('}\n\n')
+                    i += 1
+            
+            # Return Loss
+            return {'loss': -tuning_metric, 'status': STATUS_OK}
+        except Exception as e:
+            LOGGER.warning(
+                'Skipping iteration.\n'
+                'Exception: %s\n', e
+            )
+                # f'Parameters:\n{parameters}\n\n')
+            return {'loss': np.inf, 'status': STATUS_OK}
 
-        if debug:
-            i = 1
-            attr_names = [
-                'model_id', 'coin_name', 'algorithm', 'method', 'pca'
-            ]
-            for model in self.lfm_models[:5]:
-                print(f"Model n: {i}\n"
-                    "{")
-                for attr_name in attr_names:
-                    print(f"    '{attr_name}': {getattr(model, attr_name)}")
-                print(f'    val tuning_metric: {tuning_metric}')
-                print('}\n\n')
-                i += 1
-        
-        # Return Loss
-        return {'loss': -tuning_metric, 'status': STATUS_OK}
-        # except Exception as e:
-        #     LOGGER.warning(
-        #         'Skipping iteration.\n'
-        #         'Exception: %s\n', e
-        #     )
-        #         # f'Parameters:\n{parameters}\n\n')
-        #     return {'loss': np.inf, 'status': STATUS_OK}
-
-    def reset_dev_lfm_models(
-        self,
-        ml_datasets: Dict[str, Dict[str, pd.DataFrame]],
-        debug: bool = False
-    ) -> None:
-        for idx in tqdm(range(len(self.lfm_models))):
-            # Extract model from self.lfm_models
-            model = self.lfm_models[idx]
-
-            if model.stage == 'development':
-                # Reset model.version
-                model.version = '0.0'
-
-                # Instanciate MLPipeline
-                ml_pipeline = MLPipeline(
-                    pipeline_params=model.pipeline_params,
-                    ml_params=self.ml_params,
-                    trading_params=self.trading_params
-                )
-                
-                # Run build_pipeline
-                self.lfm_models[idx] = ml_pipeline.build_pipeline(
-                    ml_datasets=ml_datasets,
-                    model=None, # model.model will be re-created & re-fitted
-                    ignore_update=False,
-                    find_val_table=True,
-                    re_fit_train_val=False,
-                    find_test_table=False,
-                    find_opt_table=False,
-                    tune_opt_table=False,
-                    find_feature_importance=False,
-                    debug=debug
-                )
-
-                # Delete ml_pipeline from memory
-                del ml_pipeline
-
-                print(f'Re-setted LFM Model val_table:')
-                self.lfm_models[idx].val_table.show_attrs(residuals_attrs=False)
-
-                # Save updated model
-                self.lfm_models[idx].save()
-
-        # Filter out unperformant Models
-        filter_function = partial(
-            self.model_filter,
-            include_test_filter=False
-        )
-        self.lfm_models = list(filter(filter_function, self.lfm_models))
-
-        # Sort Models based on Val Performance
-        self.lfm_models = self.model_registry.sort_models(
-            models=self.lfm_models,
-            trading_metric=False,
-            by_table='val'
-        )
-
-    def update_lfm_models(
+    def update_models(
         self,
         new_candidate: Model,
         debug: bool = False
     ) -> None:
         if new_candidate.val_table.tuning_metric > 0:
-            if new_candidate.model_id not in [m.model_id for m in self.lfm_models]:
+            if new_candidate.model_id not in [m.model_id for m in self.models]:
                 if (
-                    len(self.lfm_models) < self.n_candidates
-                    or new_candidate.val_table.tuning_metric > self.lfm_models[-1].val_table.tuning_metric
+                    len(self.models) < self.n_candidates
+                    or new_candidate.val_table.tuning_metric > self.models[-1].val_table.tuning_metric
                 ):
-                    # Add new_candidate to self.lfm_models
-                    self.lfm_models.append(new_candidate)
+                    # Add new_candidate to self.models
+                    self.models.append(new_candidate)
                 
                     # Drop duplicate Models (keeping most performant)
-                    self.lfm_models = self.model_registry.drop_duplicate_models(
-                        models=self.lfm_models,
+                    self.models = self.model_registry.drop_duplicate_models(
+                        models=self.models,
                         from_=None,
                         trading_metric=False,
                         by_table='val',
@@ -638,17 +559,17 @@ class ModelTuner:
                     )
                 
                     # Sort Models
-                    self.lfm_models = self.model_registry.sort_models(
-                        models=self.lfm_models,
+                    self.models = self.model_registry.sort_models(
+                        models=self.models,
                         trading_metric=False,
                         by_table='val'
                     )
 
-                    if len(self.lfm_models) > self.n_candidates:
-                        self.lfm_models = self.lfm_models[:self.n_candidates]
+                    if len(self.models) > self.n_candidates:
+                        self.models = self.models[:self.n_candidates]
                     
-                    if new_candidate.model_id in [m.model_id for m in self.lfm_models]:
-                        print(f'Model {new_candidate.model_id} ({new_candidate.stage} | {new_candidate.model_class}) was added to self.lfm_models.\n')
+                    if new_candidate.model_id in [m.model_id for m in self.models]:
+                        print(f'Model {new_candidate.model_id} ({new_candidate.stage} | {new_candidate.model_class}) was added to self.models.\n')
             else:
                 LOGGER.warning(
                     '%s is already in lfm_models.\n'
@@ -656,254 +577,15 @@ class ModelTuner:
                     new_candidate.model_id
                 )
 
-    def update_gfm_models(
-        self,
-        new_candidate: Model,
-        debug: bool = False
-    ) -> None:
-        if new_candidate.model_id not in [m.model_id for m in self.gfm_models]:
-            if (
-                len(self.gfm_models) < self.n_candidates
-                or new_candidate.val_table.tuning_metric > self.gfm_models[-1].val_table.tuning_metric
-            ):
-                # Add new_candidate to self.lfm_models
-                self.gfm_models.append(new_candidate)
-            
-                # Drop duplicate Models (keeping most performant)
-                self.gfm_models = self.model_registry.drop_duplicate_models(
-                    models=self.gfm_models,
-                    from_=None,
-                    trading_metric=False,
-                    by_table='val',
-                    debug=debug
-                )
-            
-                # Sort Models
-                self.gfm_models = self.model_registry.sort_models(
-                    models=self.gfm_models,
-                    trading_metric=False,
-                    by_table='val'
-                )
-
-                if len(self.gfm_models) > self.n_candidates:
-                    self.gfm_models = self.gfm_models[:self.n_candidates]
-                
-                if new_candidate.model_id in [m.model_id for m in self.gfm_models]:
-                    print(f'Model {new_candidate.model_id} ({new_candidate.stage} | {new_candidate.model_class}) was added to self.gfm_models.\n')
-        else:
-            LOGGER.warning(
-                '%s is already in gfm_models.\n'
-                'Note: This should only happen for evaluation of warm models.\n',
-                new_candidate.model_id
-            )
-
-    def introduce_lfms_into_gfm(
-        self,
-        ml_datasets: Dict[str, Dict[str, pd.DataFrame]],
-        debug: bool = False
-    ) -> None:
-        for model in tqdm(self.lfm_models):
-            # Find repeated Models
-            repeated_models = self.model_registry.find_repeated_models(
-                new_model=model, 
-                models=self.gfm_models,
-                from_=None
-            )
-
-            # Define if Model is already found in self.gfm_models
-            if len(repeated_models) > 0:
-                print(f'Model {model.model_id} ({model.stage} | {model.model_class} - {model.intervals}) is already in GFM list.')
-            else:
-                # Define gfm_params
-                gfm_pipeline_params: dict = deepcopy(model.pipeline_params)
-
-                # Update gfm_params
-                gfm_pipeline_params.update(**{
-                    # 'coin_name': None,
-                    'model_id': None,
-                    'model_class': 'GFM',
-                    'version': '0.0',
-                    'stage': 'development',
-                    'refit_model': False,
-                    'refit_freq': np.inf,
-                    'pca': False,
-                    'optimized_trading_parameters': None,
-                    'reverse_forecasts': False,
-                    'train_coins': None # self.coin_names
-                })
-
-                # Instanciate MLPipeline
-                ml_pipeline = MLPipeline(
-                    pipeline_params=gfm_pipeline_params,
-                    ml_params=self.ml_params,
-                    trading_params=self.trading_params
-                )
-
-                # Run build_pipeline
-                gfm: Model = ml_pipeline.build_pipeline(
-                    ml_datasets=ml_datasets,
-                    model=None,
-                    ignore_update=False,
-                    find_val_table=True,
-                    re_fit_train_val=False,
-                    find_test_table=False,
-                    find_opt_table=False,
-                    find_feature_importance=False,
-                    debug=debug
-                )
-
-                # Delete ml_pipeline from memory
-                del ml_pipeline
-
-                print(f'New GFM Model val_table:')
-                gfm.val_table.show_attrs(residuals_attrs=False)
-
-                # Save Model
-                gfm.save()
-
-                # Update self.gfm_models
-                self.update_gfm_models(new_candidate=gfm)
-
-        # Sort Models based on Val Performance
-        self.gfm_models = self.model_registry.sort_models(
-            models=self.gfm_models,
-            trading_metric=True,
-            by_table='val'
-        )
-
-    def find_trading_gfm(
-        self,
-        selected_features: Dict[str, List[str]],
-        ml_datasets: Dict[str, Dict[str, pd.DataFrame]],
-        debug: bool = False
-    ):
-        # Find full features
-        full_features: List[str] = []
-        for key, features in selected_features.items():
-            full_features.extend([f for f in features if f not in full_features])
-
-        def ignore_feature(f: str, full_filter: bool = True):
-            if full_filter:
-                if (
-                    f.endswith('_min')
-                    or f.endswith('_max')
-                    or f.endswith('range')
-                    or f.endswith('_std')
-                    # or '_lag' in f
-                    or '_return' in f
-                    or '_acceleration' in f
-                    or '_jerk' in f
-                ):
-                    return True
-                return False
-            else:
-                if (
-                    f.endswith('_min')
-                    or f.endswith('_max')
-                    or f.endswith('range')
-                    or f.endswith('_std')
-                ):
-                    return True
-                return False
-
-        # Find coin features
-        coin_features = [f for f in full_features if f.startswith('coin') and not(ignore_feature(f, full_filter=False))]
-
-        # Find trading features
-        trading_features = [f for f in full_features if f.startswith('trading') and not(ignore_feature(f))]
-
-        # Find manual features
-        manual_features = [f for f in full_features if f.startswith('manual') and not(ignore_feature(f))]
-
-        # Find keep_features
-        keep_features = coin_features + trading_features + manual_features
-
-        if debug:
-            print(f'len(keep_features): {len(keep_features)}\n')
-            print(f'coin_features ({len(coin_features)}):')
-            pprint(coin_features)
-            print('\n\n')
-            print(f'trading_features ({len(trading_features)}):')
-            pprint(trading_features)
-            print('\n\n')
-            print(f'manual_features ({len(manual_features)}):')
-            pprint(manual_features)
-            print('\n\n')
-
-        # Sort self.gfm_models
-        self.gfm_models = self.model_registry.sort_models(
-            models=self.gfm_models,
-            trading_metric=True,
-            by_table='val'
-        )
-
-        # Define best Model gfm_params
-        gfm_pipeline_params: dict = deepcopy(self.gfm_models[0].pipeline_params)
-
-        # Update gfm_params
-        gfm_pipeline_params.update(**{
-            # 'coin_name': None,
-            'model_id': ''.join(secrets.choice(string.ascii_letters) for i in range(10)) + 'tradingGFM',
-            'model_class': 'GFM',
-            'version': '0.0',
-            'stage': 'development',
-            'refit_model': False,
-            'refit_freq': np.inf,
-            'pca': False,
-            'optimized_trading_parameters': None,
-            'reverse_forecasts': False,
-            'train_coins': None, # self.coin_names
-            'selected_features': keep_features
-        })
-
-        # Instanciate MLPipeline
-        ml_pipeline = MLPipeline(
-            pipeline_params=gfm_pipeline_params,
-            ml_params=self.ml_params,
-            trading_params=self.trading_params
-        )
-
-        # Build trading model
-        trading_gfm: Model = ml_pipeline.build_pipeline(
-            ml_datasets=ml_datasets,
-            model=None,
-            ignore_update=False,
-            find_val_table=True,
-            re_fit_train_val=False,
-            find_test_table=False,
-            find_opt_table=False,
-            find_feature_importance=False,
-            debug=debug
-        )
-
-        # Delete ml_pipeline from memory
-        del ml_pipeline
-
-        print(f'New Trading GFM Model val_table:')
-        trading_gfm.val_table.show_attrs(residuals_attrs=False)
-
-        # Save Model
-        trading_gfm.save()
-
-        # Update self.gfm_models
-        self.update_gfm_models(new_candidate=trading_gfm)
-
-        # Sort Models based on Val Performance
-        self.gfm_models = self.model_registry.sort_models(
-            models=self.gfm_models,
-            trading_metric=True,
-            by_table='val'
-        )
-
     def evaluate_models(
         self,
         ml_datasets: Dict[str, Dict[str, pd.DataFrame]],
         debug: bool = False
     ) -> None:
-        # Evaluate LFMs
-        for idx in tqdm(range(len(self.lfm_models))):
+        # Evaluate self.models
+        for idx in tqdm(range(len(self.models))):
             # Extract model
-            model: Model = self.lfm_models[idx]
+            model: Model = self.models[idx]
 
             if model.optimized_table is None or model.optimized_table.shape[0] == 0:
                 if model.val_table.trading_metric > 0:
@@ -915,7 +597,7 @@ class ModelTuner:
                     )
                     
                     # Run build_pipeline
-                    self.lfm_models[idx] = ml_pipeline.build_pipeline(
+                    self.models[idx] = ml_pipeline.build_pipeline(
                         ml_datasets=ml_datasets,
                         model=model,
                         ignore_update=False,
@@ -931,54 +613,11 @@ class ModelTuner:
                     # Delete ml_pipeline from memory
                     del ml_pipeline
 
-                    print(f'Evaluated LFM Model optimized_table:')
-                    self.lfm_models[idx].optimized_table.show_attrs(residuals_attrs=False)
+                    LOGGER.info(f'Evaluated Model optimized_table:')
+                    self.models[idx].optimized_table.show_attrs(residuals_attrs=False)
 
                     # Save Model
-                    self.lfm_models[idx].save()
-            else:
-                LOGGER.warning(
-                    'Model %s (%s | %s - %s) will not be evaluated, as it has already been evaluated.\n'
-                    'Optimized table parameters:',
-                    model.model_id, model.stage, model.model_class, model.intervals
-                )
-                model.optimized_table.show_attrs(general_attrs=False, residuals_attrs=False)
-
-        # Evaluate GFMs
-        for idx in tqdm(range(len(self.gfm_models))):
-            # Extract model
-            model: Model = self.gfm_models[idx]
-
-            if model.optimized_table is None:
-                # Instanciate MLPipeline
-                ml_pipeline = MLPipeline(
-                    pipeline_params=model.pipeline_params,
-                    ml_params=self.ml_params,
-                    trading_params=self.trading_params
-                )
-                
-                # Run build_pipeline
-                self.gfm_models[idx] = ml_pipeline.build_pipeline(
-                    ml_datasets=ml_datasets,
-                    model=model,
-                    ignore_update=False,
-                    find_val_table=False,
-                    re_fit_train_val=True,
-                    find_test_table=True,
-                    find_opt_table=True,
-                    tune_opt_table=True,
-                    find_feature_importance=True,
-                    debug=debug
-                )
-
-                # Delete ml_pipeline from memory
-                del ml_pipeline
-
-                LOGGER.info('Evaluated GFM Model optimized_table:')
-                self.gfm_models[idx].optimized_table.show_attrs(residuals_attrs=False)
-
-                # Save Model
-                self.gfm_models[idx].save()
+                    self.models[idx].save()
             else:
                 LOGGER.warning(
                     'Model %s (%s | %s - %s) will not be evaluated, as it has already been evaluated.\n'
@@ -991,11 +630,7 @@ class ModelTuner:
         self,
         ml_datasets: Dict[str, Dict[str, pd.DataFrame]],
         selected_features: Dict[str, List[str]],
-        reset_dev_lfm_models: bool = False,
-        tune_lfm_models: bool = False,
         reduced_tuning_periods: int = None,
-        tune_gfm_models: bool = False,
-        evaluate_models: bool = False,
         debug: bool = False, 
         deep_debug: bool = False
     ) -> None:
@@ -1003,25 +638,25 @@ class ModelTuner:
             debug = True
 
         """
-        Prepare LFM Models
+        Prepare Models
         """
         # Filter broken models
         # filter_function = partial(
         #     self.model_filter,
         #     include_test_filter=False
         # )
-        # self.lfm_models = list(filter(filter_function, self.lfm_models))
+        # self.models = list(filter(filter_function, self.models))
 
-        # Sort lfm_models, based on val_table
-        self.lfm_models = self.model_registry.sort_models(
-            models=self.lfm_models,
+        # Sort models, based on val_table
+        self.models = self.model_registry.sort_models(
+            models=self.models,
             trading_metric=False,
             by_table='val'
         )
 
-        if debug and len(self.lfm_models) > 0:
-            print('LFMs Val Tuning Metrics:\n')
-            for model in self.lfm_models:
+        if debug and len(self.models) > 0:
+            print('Models Val Tuning Metrics:\n')
+            for model in self.models:
                 print(f'{model.model_id}: {model.val_table.tuning_metric} '
                       f'({model.model_class}, {model.algorithm}, {model.coin_name}, {model.method}).')
             print('\n\n')
@@ -1036,156 +671,93 @@ class ModelTuner:
             print('self.ltp_lsl_stp_ssl:')
             pprint(self.ltp_lsl_stp_ssl)
             print('\n\n')
-            
+
         """
-        Re-set def LFMs
+        Tune Global Forecasting Models
         """
-        if reset_dev_lfm_models and len(self.lfm_models) > 0:
-            print(f'Re-setting LFMs:')
-            self.reset_dev_lfm_models(
-                ml_datasets=ml_datasets,
-                debug=deep_debug
-            )
+        # Define Max Performance Threshold
+        loss_threshold = -25
+
+        if debug and len(self.models) > 0:
+            print(f'Expected starting point: {self.models[0].val_table.tuning_metric}.\n' 
+                  f'loss_threshold: {loss_threshold}\n\n')
+        
+        # Define warm_start_params & trials
+        warm_models = [model for model in self.models if model.algorithm in self.algorithms]
+        if len(warm_models) > 0 and warm_models[0].warm_start_params is not None:
+            warm_start_params = deepcopy(warm_models[0].warm_start_params)
 
             if debug:
-                print(f'New LFMs Val Tuning Metric:\n')
-                for model in self.lfm_models:
-                    print(f'{model.model_id}: {model.val_table.tuning_metric} '
-                          f'({model.model_class}, {model.algorithm}, {model.coin_name}, {model.method}).')
+                print('warm_start_params:')
+                pprint(warm_start_params)
                 print('\n\n')
 
-        """
-        Tune LFMs
-        """
-        if tune_lfm_models:
-            # Define Max Performance Threshold
-            loss_threshold = -25
-
-            if debug and len(self.lfm_models) > 0:
-                print(f'Expected starting point: {self.lfm_models[0].val_table.tuning_metric}.\n' 
-                      f'loss_threshold: {loss_threshold}\n\n')
-            
-            # Define warm_start_params & trials
-            warm_models = [model for model in self.lfm_models + self.gfm_models if model.algorithm in self.algorithms]
-            if len(warm_models) > 0 and warm_models[0].warm_start_params is not None:
-                warm_start_params = deepcopy(warm_models[0].warm_start_params)
-
-                if debug:
-                    print('warm_start_params:')
-                    pprint(warm_start_params)
-                    print('\n\n')
-
-                best_parameters_to_evaluate = self.parameter_configuration(
-                    parameters_list=[warm_start_params],
-                    complete_parameters=True,
-                    choice_parameters='index',
-                    debug=debug
-                )
-                trials = generate_trials_to_calculate(best_parameters_to_evaluate)
-            else:
-                warm_start_params = None
-                trials = None
-
-            # Delete warm models
-            del warm_models
-
-            # Define fixed params for self.objective
-            fmin_objective = partial(
-                self.objective,
-                ml_datasets=ml_datasets,
-                selected_features=selected_features,
-                reduced_tuning_periods=reduced_tuning_periods,
-                warm_start_params=warm_start_params,
-                debug=deep_debug
-            )
-            
-            print(f'\n\nTuning LFMs:\n')
-
-            # Re-set self.is_first_round
-            self.is_first_round = True
-
-            # Run fmin to optimize objective function
-            result = fmin(
-                fn=fmin_objective,
-                space=self.search_space,
-                algo=tpe.suggest,
-                max_evals=self.ml_params.get('max_evals'),
-                timeout=self.ml_params.get('timeout_mins') * 60,
-                loss_threshold=loss_threshold,
-                trials=trials,
-                verbose=True,
-                show_progressbar=True,
-                early_stop_fn=None  # early_stop.no_progress_loss(percent_increase=0.2), None
-            )
-
-            # Save LFMs
-            for model in self.lfm_models:
-                model.save()
-
-            if reduced_tuning_periods is not None:
-                print(f'Re-setting LFMs:')
-                self.reset_dev_lfm_models(
-                    ml_datasets=ml_datasets,
-                    debug=deep_debug
-                )
-
-            # Save LFMs
-            for model in self.lfm_models:
-                model.save()
-
-        """
-        Tune GFMs
-        """
-        if tune_gfm_models:
-            print("Tuning GFMs:\n")
-            self.introduce_lfms_into_gfm(
-                ml_datasets=ml_datasets,
-                debug=deep_debug
-            )
-
-            print("Adding trading-only GFM:\n")
-            self.find_trading_gfm(
-                selected_features=selected_features,
-                ml_datasets=ml_datasets,
+            best_parameters_to_evaluate = self.parameter_configuration(
+                parameters_list=[warm_start_params],
+                complete_parameters=True,
+                choice_parameters='index',
                 debug=debug
             )
+            trials = generate_trials_to_calculate(best_parameters_to_evaluate)
+        else:
+            warm_start_params = None
+            trials = None
 
-            if debug:
-                print('GFMs Val Trading Metric:\n')
-                for model in self.gfm_models:
-                    print(f'{model.model_id}: {model.val_table.trading_metric} '
-                        f'({model.model_class}, {model.algorithm}, {model.coin_name}, {model.method}).')
-                print('\n\n')
+        # Delete warm models
+        del warm_models
+
+        # Define fixed params for self.objective
+        fmin_objective = partial(
+            self.objective,
+            ml_datasets=ml_datasets,
+            selected_features=selected_features,
+            reduced_tuning_periods=reduced_tuning_periods,
+            warm_start_params=warm_start_params,
+            debug=deep_debug
+        )
+        
+        print(f'\n\nTuning Global Forecasting Models:\n')
+
+        # Re-set self.is_first_round
+        self.is_first_round = True
+
+        # Run fmin to optimize objective function
+        result = fmin(
+            fn=fmin_objective,
+            space=self.search_space,
+            algo=tpe.suggest,
+            max_evals=self.ml_params.get('max_evals'),
+            timeout=self.ml_params.get('timeout_mins') * 60,
+            loss_threshold=loss_threshold,
+            trials=trials,
+            verbose=True,
+            show_progressbar=True,
+            early_stop_fn=None  # early_stop.no_progress_loss(percent_increase=0.2), None
+        )
+
+        # Save Models
+        for model in self.models:
+            model.save()
 
         """
         Evaluate Models
         """
-        if evaluate_models:
-            print("Evaluating Models:\n")
-            self.evaluate_models(
-                ml_datasets=ml_datasets,
-                debug=deep_debug
-            )
+        LOGGER.info("Evaluating Models:")
+        self.evaluate_models(
+            ml_datasets=ml_datasets,
+            debug=deep_debug
+        )
 
-        """
-        Save all Models
-        """
-        # Save LFMs
-        for model in self.lfm_models:
+        # Re-Save Models
+        for model in self.models:
             model.save()
-            model.save_backup()
-
-        # Save GFMs
-        for model in self.gfm_models:
-            model.save()
-            model.save_backup()
 
         """
         Update Model Registry
         """
         # Add Dev Models to Registry
         self.model_registry.registry['development'] = [
-            (m.model_id, m.model_class) for m in self.lfm_models + self.gfm_models
+            (m.model_id, m.model_class) for m in self.models
             if m.stage == 'development'
         ]
 
@@ -1242,13 +814,11 @@ class ModelTuner:
             [self.model_registry.load_prod_model()]
         )
 
-        # Populate self.lfm_models & self.gfm_models
+        # Populate self.models
         if len(reg_models) > 0:
-            self.lfm_models: List[Model] = [m for m in reg_models if m is not None and m.model_class == 'LFM']
-            self.gfm_models: List[Model] = [m for m in reg_models if m is not None and m.model_class == 'GFM']
+            self.models: List[Model] = [m for m in reg_models if m is not None]
         else:
-            self.lfm_models: List[Model] = []
-            self.gfm_models: List[Model] = []
+            self.models: List[Model] = []
         
         # Delete reg_models from memory
         del reg_models

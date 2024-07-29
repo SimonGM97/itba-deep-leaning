@@ -14,6 +14,8 @@ import statsmodels.api as sm
 import pandas as pd
 import numpy as np
 import time
+import os
+import pickle
 from numba import jit
 from copy import deepcopy
 from pprint import pprint, pformat
@@ -209,10 +211,7 @@ class TradingTable(pd.DataFrame):
     
     @property
     def save_path(self) -> str:
-        if self.mock:
-            return f"{Params.bucket}/mock/trading/trading_table/{self.intervals_}/{self.model_id_}"
-        else:
-            return f"{Params.bucket}/trading/trading_table/{self.intervals_}/{self.model_id_}"
+        return os.path.join("models", self.intervals_, self.model_id_)
 
     @property
     def general_attrs(self) -> dict:
@@ -1468,126 +1467,26 @@ class TradingTable(pd.DataFrame):
                           f'resid_auto_correlations: {self.resid_auto_correlations}\n'
                           f'Residuals have Auto-Correlations.\n\n')
     
-    def save_mock_asset(
-        self,
-        asset: pd.DataFrame | dict = None,
-        asset_name: str = None
-    ) -> None:
-        # print(f'Saving {asset_name} - [shape: {asset.shape}]')
-
-        # Define base_path
-        base_path = f"{Params.bucket}/mock/trading/trading_table/{self.intervals_}"
-
-        # Define save_path
-        if asset_name == 'test_trading_df':
-            save_path = f"{base_path}/test_trading_df.parquet"
-        elif asset_name == 'test_trading_df_attr':
-            save_path = f"{base_path}/test_trading_df_attr.pickle"
-        elif asset_name == 'expected_TT_output':
-            save_path = f"{base_path}/expected_TT_output.parquet"
-        elif asset_name == 'performance_attrs':
-            save_path = f"{base_path}/performance_attrs.pickle"
-        elif asset_name == 'metrics':
-            save_path = f"{base_path}/metrics.pickle"
-        else:
-            raise Exception(f'Invalid "asset_name" parameter was received: {asset_name}.\n')
-        
-        # Save asset to S3
-        write_to_s3(asset=asset, path=save_path, overwrite=True)
-    
-    def load_mock_asset(
-        self,
-        asset_name: str,
-        re_create: bool = False
-    ) -> pd.DataFrame | dict:
-        # Define re_create_base_path
-        if re_create:
-            prod_model_id: str = load_from_s3(
-                f"{Params.bucket}/modeling/model_registry/{self.intervals_}/model_registry.json"
-            )['production'][0][0]
-
-            LOGGER.info("Re-creating mocked TradingTable from model_id: %s", prod_model_id)
-
-            re_create_base_path = f"{Params.bucket}/trading/trading_table/{self.intervals_}/{prod_model_id}"
-        else:
-            prod_model_id = None
-            re_create_base_path = None
-
-        # Define base_path
-        base_path = f"{Params.bucket}/mock/trading/trading_table/{self.intervals_}"
-
-        # Define load_path
-        if asset_name == 'test_trading_df':
-            if re_create:
-                load_path = f"{re_create_base_path}/{prod_model_id}_test_trading_df.parquet"
-            else:
-                load_path = f"{base_path}/test_trading_df.parquet"
-        elif asset_name == 'test_trading_df_attr':
-            if re_create:
-                load_path = f"{re_create_base_path}/{prod_model_id}_test_trading_df_attr.pickle"
-            else:
-                load_path = f"{base_path}/test_trading_df_attr.pickle"
-        elif asset_name == 'expected_TT_output':
-            load_path = f"{base_path}/expected_TT_output.parquet"
-        elif asset_name == 'performance_attrs':
-            load_path = f"{base_path}/performance_attrs.pickle"
-        elif asset_name == 'metrics':
-            load_path = f"{base_path}/metrics.pickle"
-        else:
-            raise Exception(f'Invalid "asset_name" parameter was received: {asset_name}.\n')
-        
-        # Load asset from S3
-        asset = load_from_s3(path=load_path, ignore_checks=True)
-
-        if re_create:
-            if asset_name == 'test_trading_df':
-                # Filter required columns
-                asset = asset[[
-                    'return_forecast',
-                    'real_return',
-                    'open',
-                    'high',
-                    'low',
-                    'price'
-                ]]
-            elif asset_name == 'test_trading_df_attr':
-                # Rename keys
-                asset['model_id'] = asset.pop('model_id_')
-                asset['coin_name'] = asset.pop('coin_name_')
-                asset['intervals'] = asset.pop('intervals_')
-
-                # Drop unnecessary keys
-                keep_keys = [
-                    'model_id', 'coin_name', 'intervals',
-                    'algorithm', 'method', 'pca', 'trading_parameters'
-                ]
-                asset: dict = {k: v for k, v in asset.items() if k in keep_keys}
-        
-        # print(f'Loaded {asset_name} - [shape: {asset.shape}]')
-
-        return asset
-
     def save(
         self,
         debug: bool = False
     ) -> None:
-        # Define base_path
-        # self.s3_base_path = f"{Params.bucket}/trading/trading_table/{self.intervals_}/{self.model_id_}"
-        
+        # Make directory if it does not already exist
+        if not os.path.exists(self.save_path):
+            os.makedirs(self.save_path, exist_ok=True)
+
         # Save parquet files
-        write_to_s3(
-            asset=self,
-            path=f"{self.save_path}/{self.table_name}.parquet"
+        self.to_parquet(
+            path=os.path.join(self.save_path, f"{self.table_name}.parquet"),
+            engine='pyarrow'
         )
 
         # Define attributes to save
         trading_table_attr = {key: value for key, value in self.__dict__.items() if key in self.save_attr_list}
 
         # Save pickle attrs
-        write_to_s3(
-            asset=trading_table_attr,
-            path=f"{self.save_path}/{self.table_name}_attr.pickle"
-        )
+        with open(os.path.join(self.save_path, f'{self.table_name}_attr.pickle'), 'wb') as file:
+            pickle.dump(trading_table_attr, file)
         
         if debug:
             print(f'Saved Attributes: {[k for k in trading_table_attr.keys()]}\n')
@@ -1603,7 +1502,10 @@ class TradingTable(pd.DataFrame):
         
         try:
             # Load parquet files
-            loaded_parquet = load_from_s3(path=f"{self.save_path}/{self.table_name}.parquet")
+            loaded_parquet: pd.DataFrame = pd.read_parquet(
+                path=os.path.join(self.save_path, f"{self.table_name}.parquet"),
+                engine='pyarrow'
+            )
 
             # Instanciate Tradingtable
             self.__init__(
@@ -1635,7 +1537,8 @@ class TradingTable(pd.DataFrame):
         
         try:
             # Load pickle files
-            trading_table_attr: dict = load_from_s3(path=f"{self.save_path}/{self.table_name}_attr.pickle")
+            with open(os.path.join(self.save_path, f'{self.table_name}_attr.pickle'), 'rb') as file:
+                trading_table_attr: dict = pickle.load(file)
 
             # Set pickled attrs
             for attr_key, attr_value in trading_table_attr.items():

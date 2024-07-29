@@ -11,6 +11,8 @@ from PyTradeX.utils.data_processing.data_expectations import needs_repair
 from PyTradeX.modeling.model import Model
 from PyTradeX.trading.trading_table import TradingTable
 from tqdm import tqdm
+import os
+import json
 from pprint import pprint, pformat
 from typing import List, Dict, Tuple
 
@@ -54,14 +56,9 @@ class ModelRegistry:
             "staging": [], 
             "development": []
         }
-        
-        # File System
-        # self.model_registry_path = os.path.join(
-        #     Params.base_cwd, Params.bucket, "modeling", "model_registry", self.intervals, "model_registry.json"
-        # )
 
-        # S3
-        self.s3_model_registry_path = f"{Params.bucket}/modeling/model_registry/{self.intervals}/model_registry.json"
+        # Define save_path
+        self.save_path = os.path.join("models", self.intervals, "model_registry.json")
 
         self.load()
 
@@ -318,7 +315,7 @@ class ModelRegistry:
             debug_()
 
         # Find forced model
-        forced_model = load_from_s3(path=f"{Params.bucket}/utils/forced_model/forced_model.json")['forced_model']
+        forced_model = None
 
         if debug:
             print('Foreced Model:')
@@ -532,12 +529,12 @@ class ModelRegistry:
             debug_()
         
         # Clean File System
-        self.clean_s3_models()
+        self.clean_models()
 
         # Save self.registry
         self.save()
 
-    def clean_s3_models(self) -> None:
+    def clean_models(self) -> None:
         keep_regs = (
             self.registry["development"] +
             self.registry["staging"] + 
@@ -546,30 +543,50 @@ class ModelRegistry:
         keep_ids = [reg[0] for reg in keep_regs]
 
         LOGGER.info('keep_ids:\n%s\n', pformat(keep_ids))
+        
+        def list_files_in_subdirectory(directory):
+            # List to store file names
+            file_list = []
+            
+            # Walk the directory tree
+            for root, dirs, files in os.walk(directory):
+                for file in files:
+                    file_list.append(os.path.join(root, file))
+            
+            return file_list
+
+        # Find files
+        directory_path = os.path.join("models", self.intervals)
+        file_names = list_files_in_subdirectory(directory_path)
 
         # Clean Models
-        models_subdir = f"modeling/models/{self.intervals}"
+        for file_name in file_names:
+            if not any([model_id in file_name for model_id in keep_ids]):
+                print(f"Deleting {file_name}.\n")
+                os.remove(file_name)
 
-        for key in find_keys(bucket=Params.bucket, subdir=models_subdir):
-            if not any([model_id in key for model_id in keep_ids]):
-                print(f"Deleting {Params.bucket}/{key}.\n")
-                delete_from_s3(path=f"{Params.bucket}/{key}")
+        def list_subdirectories(directory):
+            # List to store subdirectories
+            subdirectories = []
+            
+            # Iterate over the directory contents
+            for entry in os.listdir(directory):
+                # Create full path
+                full_path = os.path.join(directory, entry)
+                # Check if it's a directory
+                if os.path.isdir(full_path):
+                    subdirectories.append(full_path)
+            
+            return subdirectories
 
-        # Clean TradingTables
-        trading_tables_subdir = f"trading/trading_table/{self.intervals}"
+        # Find subdirs
+        subdirs = list_subdirectories(directory_path)
 
-        for key in find_keys(bucket=Params.bucket, subdir=trading_tables_subdir):
-            if 'trading_returns' not in key and not any([model_id in key for model_id in keep_ids]):
-                print(f"Deleting {Params.bucket}/{key}.\n")
-                delete_from_s3(path=f"{Params.bucket}/{key}")
-
-        # Clean Model backup
-        model_backup_subdir = f"backup/models/{self.intervals}"
-
-        for key in find_keys(bucket=Params.bucket, subdir=model_backup_subdir):
-            if not any([model_id in key for model_id in keep_ids]):
-                print(f"Deleting {Params.bucket}/{key}.\n")
-                delete_from_s3(path=f"{Params.bucket}/{key}")
+        # Clean dubdirs
+        for subdir in subdirs:
+            if not any([model_id in subdir for model_id in keep_ids]):
+                print(f"Deleting {subdir}.\n")
+                os.rmdir(subdir)
 
     def find_repeated_models(
         self,
@@ -606,20 +623,22 @@ class ModelRegistry:
                 raise Exception(f'"from_" parameter got an invalid value: {from_} (expected "GFM" or "LFM").\n\n')
 
         def extract_tuple_attrs(model: Model):
-            # Define base attrs to add
-            attrs = {
-                'coin_name': model.coin_name,
-                'intervals': model.intervals,
-                'lag': model.lag,
-                'algorithm': model.algorithm,
-                'method': model.method,
-                # 'pca': model.pca
-            }
+            if model is not None:
+                # Define base attrs to add
+                attrs = {
+                    'coin_name': model.coin_name,
+                    'intervals': model.intervals,
+                    'lag': model.lag,
+                    'algorithm': model.algorithm,
+                    'method': model.method,
+                    # 'pca': model.pca
+                }
 
-            # Add hyperparameters
-            attrs.update(model.hyper_parameters)
+                # Add hyperparameters
+                attrs.update(model.hyper_parameters)
 
-            return tuple(attrs.items())
+                return tuple(attrs.items())
+            return tuple()
 
         # Extract new tuple attrs
         new_tuple_attrs = extract_tuple_attrs(new_model)
@@ -720,9 +739,8 @@ class ModelRegistry:
     def load(self) -> None:
         # Read registry
         try:
-            self.registry: Dict[str, List[List[str, str]]] = load_from_s3(
-                path=self.s3_model_registry_path
-            )
+            with open(self.save_path, 'r') as file:
+                self.registry: Dict[str, List[List[str, str]]] = json.load(file)
         except Exception as e:
             LOGGER.critical(
                 'Unable to load self.registry (%s).\n'
@@ -731,11 +749,9 @@ class ModelRegistry:
             )
 
     def save(self) -> None:
-        # Write self.registry in S3
-        write_to_s3(
-            asset=self.registry,
-            path=self.s3_model_registry_path
-        )
+        # Save dictionary to a JSON file
+        with open(self.save_path, 'w') as file:
+            json.dump(self.registry, file, indent=4)
 
     def __repr__(self) -> str:
         LOGGER.info('Model Registry:')

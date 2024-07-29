@@ -1,0 +1,166 @@
+{
+    "TRX": {
+        "primary_color": "#c53027",
+        "secondary_color": "#ffffff"
+    },
+    "DOGE": {
+        "primary_color": "#ba9f33",
+        "secondary_color": "#e0cd81"
+    },
+    "MATIC": {
+        "primary_color": "#8f5ae8",
+        "secondary_color": "#ffffff"
+    },
+    "UNI": {
+        "primary_color": "#ff007a",
+        "secondary_color": "#ffffff"
+    },
+    "XRP":{
+        "primary_color": "#23292f",
+        "secondary_color": "#ffffff"
+    },
+    "LTC": {
+        "primary_color": "#345d9d",
+        "secondary_color": "#ffffff"
+    },
+    "BNB": {
+        "primary_color": "#f3ba2f",
+        "secondary_color": "#212121"
+    },  
+    "ETH": {
+        "primary_color": "#5c6bc0",
+        "secondary_color": "#9ea7d9"
+    },
+    "ADA": {
+        "primary_color": "#3468d1",
+        "secondary_color": "#ffffff"
+    },
+    "SOL": {
+        "primary_color": "#934afb",
+        "secondary_color": "#20b4a3"
+    },
+    "FTM": {
+        "primary_color": "#13b5ec",
+        "secondary_color": "#ffffff"
+    },
+    "AVAX": {
+        "primary_color": "#e84142",
+        "secondary_color": "#ffffff"
+    },
+    "DOT": {
+        "primary_color": "#e6007a",
+        "secondary_color": "#ffffff"
+    },
+    "SAND": {
+        "primary_color": "#0090fa",
+        "secondary_color": "#ffffff"
+    },
+    "ENJ": {
+        "primary_color": "#7866d5",
+        "secondary_color": "#ffffff"
+    },
+    "GALA": {
+        "primary_color": "#080808",
+        "secondary_color": "#858585"
+    },
+    "LINK": {
+        "primary_color": "#335dd2",
+        "secondary_color": "#bee1fa"
+    },
+    "GAL": {
+        "primary_color": "#1986E6",
+        "secondary_color": "#BDDDF8"
+    },
+    "DODO": {
+        "primary_color": "#fef806",
+        "secondary_color": "#ffffff"
+    },
+    "WAVES": {
+        "primary_color": "#61d1ee",
+        "secondary_color": "#cccccc"
+    },
+    "APE": {
+        "primary_color": "#0249d5",
+        "secondary_color": "#053aa2"
+    },
+    "ICP": {
+        "primary_color": "#29abe2",
+        "secondary_color": "#ed1d79"
+    },
+    "GMT": {
+        "primary_color": "#13c6ff",
+        "secondary_color": "#D6F6FB"
+    },
+    "ETC": {
+        "primary_color": "#0b8311",
+        "secondary_color": "#3ab83a"
+    },
+    "GMX": {
+        "primary_color": "#3a3fed",
+        "secondary_color": "#0eb4d5"
+    },
+    "NEAR": {
+        "primary_color": "#272727",
+        "secondary_color": "#DCDCDC"
+    },
+    "BTC": {
+        "primary_color": "#f79413",
+        "secondary_color": "#ffffff"
+    },
+    "OP": {
+        "primary_color": "#fe0523",
+        "secondary_color": "#fefefe"
+    },
+    "SUPER": {
+        "primary_color": "#7012fe",
+        "secondary_color": "#ffffff"
+    },
+    "ATOM": {
+        "primary_color": "#2e3148",
+        "secondary_color": "#ffffff"
+    },
+    "LUNA": {
+        "primary_color": "#f0ae50",
+        "secondary_color": "#f3e372"
+    },
+    "LUNC": {
+        "primary_color": "#172852",
+        "secondary_color": "#ffd83d"
+    },
+    "COTI": {
+        "primary_color": "#00467a",
+        "secondary_color": "#2bbcde"
+    },
+    "FIDA": {
+        "primary_color": "#181d4c",
+        "secondary_color": "#7c7cff"
+    },
+    "CYBER": {
+        "primary_color": "#000000",
+        "secondary_color": "#ffffff"
+    },
+    "OM": {
+        "primary_color": "#ff98d7",
+        "secondary_color": "#fab4a2"
+    },
+    "ASTR": {
+        "primary_color": "#0288f4",
+        "secondary_color": "#0be1ff"
+    },
+    "OGN": {
+        "primary_color": "#007fff",
+        "secondary_color": "#ffffff"
+    },
+    "BUSD": {
+        "primary_color": "#f1c51e",
+        "secondary_color": "#a89249"
+    },
+    "USDT": {
+        "primary_color": "#32a07c",
+        "secondary_color": "#ffffff"
+    },
+    "USDC": {
+        "primary_color": "#2775ca",
+        "secondary_color": "#ffffff"
+    }
+}

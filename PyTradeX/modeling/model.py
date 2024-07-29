@@ -28,16 +28,16 @@ from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import accuracy_score
 
 # Deep learning
-from tensorflow.keras.models import Sequential
+import tensorflow as tf
+from tensorflow.keras.models import Sequential, load_model
 from tensorflow.keras.layers import LSTM, Dense
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
+
 # from darts.models.forecasting.nbeats import NBEATSModel
 # from darts import TimeSeries, concatenate
-# from keras.models import Sequential
-# from keras.layers import Dense, LSTM, Bidirectional, Conv1D
-# from keras.callbacks import EarlyStopping
 # from keras.optimizers import legacy
 # from keras.preprocessing.sequence import TimeseriesGenerator
-# from keras.optimizers import Adam
 # from keras.models import load_model
 # from torch.optim import Adam
 # from torch.nn.modules.loss import MSELoss, L1Loss
@@ -66,6 +66,7 @@ import string
 import time
 import signal
 import os
+import pickle
 from typing import Tuple, List, Dict
 from pprint import pprint, pformat
 
@@ -249,7 +250,7 @@ class Model:
         self.selected_features: List[str] = selected_features
 
         # Model Parameters
-        self.hyper_parameters: dict = self.correct_hyper_parameters(hyper_parameters)
+        self.hyper_parameters: dict = self.correct_hyper_parameters(hyper_parameters, debug=debug)
         self.trading_parameters: dict = trading_parameters
         self.optimized_trading_parameters: dict = optimized_trading_parameters
 
@@ -289,7 +290,7 @@ class Model:
         self.cum_ret_model: Dict[LinearRegression, float] = None
 
         # Define base_path
-        self.s3_base_path = f"{Params.bucket}/modeling/models/{self.intervals}/{self.model_id}"
+        self.save_path = os.path.join("models", self.intervals, self.model_id)
         
         if load_model:
             self.load(debug=debug)
@@ -417,7 +418,7 @@ class Model:
             return ''
 
         elif self.algorithm == 'lstm':
-            return f"{self.model_id}_lstm_model.h5"
+            return f"{self.model_id}_lstm_model.keras" # .h5
 
         elif self.algorithm == 'n_beats':
             return f"{self.model_id}_n_beats_model.ckpt"
@@ -550,7 +551,12 @@ class Model:
             pass
 
         elif self.algorithm == 'lstm':
-            pass
+            hyper_parameters.update(**{
+                "epochs": 50,
+                "batch_size": 64,
+                "sequence_length": 7,
+                "layers": 1
+            })
         
         """
         elif self.algorithm == 'n_beats':
@@ -671,7 +677,7 @@ class Model:
 
         return hyper_parameters
 
-    def prepare_lstm_datasets(
+    def reshape_dl_datasets(
         self,
         X: pd.DataFrame,
         y: pd.DataFrame = None,
@@ -685,6 +691,14 @@ class Model:
               It signifies how far back in time the LSTM should look to make predictions. 
             - features: This dimension represents the number of features or variables you have in each time step. 
         """
+        # Function to create sequences
+        def create_sequences(X: pd.DataFrame, y: pd.Series, time_steps=10):
+            Xs, ys = [], []
+            for i in range(len(X) - time_steps):
+                Xs.append(X.iloc[i:(i + time_steps)].values)
+                ys.append(y.iloc[i + time_steps])
+            return np.array(Xs), np.array(ys)
+
         # generator = TimeseriesGenerator(
         #     X, y[[f'target_{self.method}']], 
         #     length=self.hyper_parameters['sequence_length'], 
@@ -696,14 +710,36 @@ class Model:
         num_sequences = X.shape[0] - sequence_length
 
         # Reshape X into sequences
-        X = np.array(X)
+        X: np.ndarray = (
+            X
+            .replace([np.inf, -np.inf], np.nan)
+            .fillna(0)
+            .values
+        )
+
         X_sequences = np.array([X[i:i+sequence_length] for i in range(num_sequences)])
+        # X_sequences = X.reshape((X.shape[0], sequence_length, X.shape[1]))
 
         # Extract y_train for corresponding sequences
         if y is not None:
-            y_sequences = np.array(y[f'target_{self.method}'])[sequence_length:].reshape(num_sequences, 1, 1)
+            y_sequences: np.ndarray = (
+                y
+                .replace([np.inf, -np.inf], np.nan)
+                .fillna(0)
+                [f'target_{self.method}']
+                .values
+                [sequence_length:]
+                .reshape(num_sequences, 1, 1)
+            )
+            # y_sequences: np.ndarray = (
+            #     y
+            #     .replace([np.inf, -np.inf], np.nan)
+            #     .fillna(0)
+            #     [f'target_{self.method}']
+            #     .values
+            # )
         else:
-            y_sequences = None
+            y_sequences: np.ndarray = None
 
         if debug:
             if y is None:
@@ -772,6 +808,58 @@ class Model:
 
         elif self.algorithm == 'xgboost':
             self.model = XGBRegressor(**self.hyper_parameters)
+
+        elif self.algorithm == 'lstm':
+            # Reshape train datasets
+            train_features, train_target = self.reshape_dl_datasets(
+                X=train_features, y=train_target,
+                debug=debug
+            )
+
+            # Define a Sequential model
+            self.model = Sequential()
+            
+            # Add first layer
+            self.model.add(LSTM(
+                units=self.hyper_parameters['units'],
+                input_shape=(self.hyper_parameters['sequence_length'], train_features.shape[2]),
+                activation='relu',
+                return_sequences=True if self.hyper_parameters['layers'] > 1 else False,
+                dropout=self.hyper_parameters['dropout'], 
+                recurrent_dropout=self.hyper_parameters['recurrent_dropout']
+            ))
+            
+            # Add subsequent LSTM layers
+            if self.hyper_parameters['layers'] > 1:
+                mult_list = (np.geomspace(1, 2, self.hyper_parameters['layers']+1)[::-1] - 1)[:-1]
+                i = 1
+                for mult in mult_list[1:]:
+                    # Define units & return_sequences
+                    units = int(self.hyper_parameters['units'] * mult)
+                    return_sequences = True if i < len(mult_list)-1 else False # False
+
+                    # Add layer
+                    self.model.add(LSTM(    
+                        units=units, 
+                        activation='relu',
+                        return_sequences=return_sequences,
+                        dropout=self.hyper_parameters['dropout'], 
+                        recurrent_dropout=self.hyper_parameters['recurrent_dropout']
+                    ))
+                    i += 1
+            
+            # Add Dense layer and compile
+            self.model.add(Dense(1))
+            
+            # Describe Optimizer
+            optimizer = Adam(
+                learning_rate=self.hyper_parameters['learning_rate']
+            )
+            
+            self.model.compile(
+                loss="mae", # "mae"
+                optimizer=optimizer
+            )
         
         else:
             LOGGER.critical('Invalid algorithm: %s!', self.algorithm)
@@ -884,7 +972,7 @@ class Model:
         find_forecast_multiplier: bool = True,
         debug: bool = False
     ) -> None:        
-        if self.model_class == 'GFM':
+        if self.model_class == 'GFM' and debug:
             LOGGER.info(
                 "Fitting %s GFM model.\n"
                 "train_target.shape: %s\n"
@@ -934,12 +1022,7 @@ class Model:
                 train_features.values.astype(float), 
                 train_target[target_column].values.astype(float)
             )
-
-        else:
-            LOGGER.critical('Invalid algorithm: %s!', self.algorithm)
-            raise Exception(f'Invalid algorithm: {self.algorithm}!')
         
-        """
         elif self.algorithm == 'prophet':
             # Build Train and Future DataFrames
             train_df = pd.concat(
@@ -967,34 +1050,52 @@ class Model:
             # model.fit(df=train_df)
             # print(f'orbit predicted_df: {model.predict(df=test_df)}')
             pass
-        
+
         elif self.algorithm == 'lstm':
-            # Prepare datasets
-            X_sequences, y_sequences = self.prepare_lstm_datasets(
+            # # Check if GPU is available
+            # physical_devices = tf.config.list_physical_devices('GPU')
+            # if len(physical_devices) > 0:
+            #     tf.config.experimental.set_memory_growth(physical_devices[0], True)
+            #     print("GPU is available and enabled for training.")
+            # else:
+            #     print("GPU is not available. Training will be done on CPU.")
+
+            # Reshape datasets
+            X_train_sequences, y_train_sequences = self.reshape_dl_datasets(
                 X=train_features,
                 y=train_target,
-                debug=True # debug
+                debug=debug
+            )
+
+            X_val_sequences, y_val_sequences = self.reshape_dl_datasets(
+                X=val_features,
+                y=val_target,
+                debug=debug
             )
 
             # with self.strategy.scope():
             early_stopping = EarlyStopping(
-                monitor='loss',
-                patience=10
+                monitor='val_loss',
+                patience=10,
+                restore_best_weights=True
             )
             
             history = self.model.fit(
-                X_sequences, 
-                y_sequences,
+                X_train_sequences, 
+                y_train_sequences,
                 epochs=self.hyper_parameters['epochs'],
                 batch_size=self.hyper_parameters['batch_size'],
-                verbose=1, # 0,
+                verbose=0, # 0, 1
                 callbacks=[early_stopping],
-                workers=-1,
-                use_multiprocessing=True
+                validation_data=(X_val_sequences, y_val_sequences)
             )
 
             loss = history.history["loss"][-1]
+        else:
+            LOGGER.critical('Invalid algorithm: %s!', self.algorithm)
+            raise Exception(f'Invalid algorithm: {self.algorithm}!')
 
+        """
         elif self.algorithm == 'n_beats':
             ts_univ_y_train = TimeSeries.from_dataframe(
                 train_target, 
@@ -1062,7 +1163,7 @@ class Model:
             v_numbers = self.version.split('.')
             self.version = f"{int(v_numbers[0]) + 1}.{v_numbers[1]}"
 
-        if self.model_class == 'GFM':
+        if self.model_class == 'GFM' and debug:
             LOGGER.info(
                 "New %s (%s | %s - %s) version: %s.",
                 self.model_id, self.stage, self.model_class, self.intervals, self.version
@@ -1073,6 +1174,7 @@ class Model:
             self.train_idx = list(train_target.index)
         else:
             self.train_idx = list(set(self.train_idx + list(train_target.index)))
+        
         self.train_idx.sort()
 
         # Update self.max_seen_return & self.min_seen_return
@@ -1159,6 +1261,18 @@ class Model:
             map = np.mean(np.abs(train_predictions))
             self.forecast_multiplier = mat / map
 
+        elif self.algorithm == 'lstm':
+            X_train_sequences, _ = self.reshape_dl_datasets(
+                X=train_features,
+                y=None,
+                debug=debug
+            )
+
+            train_predictions = self.model.predict(X_train_sequences, verbose=0)
+
+            map = np.mean(np.abs(train_predictions))
+            self.forecast_multiplier = mat / map
+
         else:
             LOGGER.critical('Invalid algorithm: %s!', self.algorithm)
             raise Exception(f'Invalid algorithm: {self.algorithm}!')
@@ -1190,9 +1304,6 @@ class Model:
             # model.fit(df=train_df)
             # print(f'orbit predicted_df: {model.predict(df=test_df)}')
             pass
-        
-        elif self.algorithm == 'lstm':
-            pass
 
         elif self.algorithm == 'n_beats':
             self.forecast_multiplier = 1
@@ -1218,7 +1329,7 @@ class Model:
             pass
         """
         
-        if self.model_class == 'GFM':
+        if self.model_class == 'GFM': # and debug
             LOGGER.info(
                 "Model %s (%s | %s - %s) forecast_multiplier was updated.",
                 self.model_id, self.stage, self.model_class, self.intervals
@@ -1275,7 +1386,10 @@ class Model:
                 pass
 
             elif self.algorithm == 'xgboost':
-                pass            
+                pass
+
+            elif self.algorithm == 'lstm': 
+                pass
             
             else:
                 LOGGER.critical('Invalid algorithm: %s!', self.algorithm)
@@ -1321,9 +1435,6 @@ class Model:
                 pass
 
             elif self.algorithm == 'n_beats':
-                pass
-
-            elif self.algorithm == 'lstm': 
                 pass
             """
 
@@ -1408,6 +1519,29 @@ class Model:
         elif self.algorithm == 'xgboost':
             forecast = self.model.predict(
                 forecast_features.values
+            )
+
+        elif self.algorithm == 'lstm':
+            # Reshape datasets
+            X_forecst_sequences, _ = self.reshape_dl_datasets(
+                X=forecast_features,
+                y=None,
+                debug=debug
+            )
+
+            # Predict new observations
+            forecast = (
+                self.model
+                .predict(X_forecst_sequences, verbose=0)
+                .reshape(X_forecst_sequences.shape[0], 1)
+            )
+
+            # Add 0 values
+            forecast = np.concatenate(
+                (
+                    np.zeros((self.hyper_parameters['sequence_length'], 1)), 
+                    forecast
+                ), axis=0
             )
 
         else:
@@ -1997,17 +2131,18 @@ class Model:
                     self.model_id, self.algorithm, e
                 )
                 
-                # Find Native Feature Importance
-                self.find_native_importance(
-                    test_features=test_features,
-                    debug=debug
-                )
+                # # Find Native Feature Importance
+                # self.find_native_importance(
+                #     test_features=test_features,
+                #     debug=debug
+                # )
         else:
-            # Find Native Feature Importance
-            self.find_native_importance(
-                test_features=test_features,
-                debug=debug
-            )
+            # # Find Native Feature Importance
+            # self.find_native_importance(
+            #     test_features=test_features,
+            #     debug=debug
+            # )
+            pass
 
     def build_performance_fig(
         self, 
@@ -2155,89 +2290,49 @@ class Model:
 
         return diagnostics_dict
 
-    def save_backup(
-        self,
-        debug: bool = False
-    ) -> None:
-        # Find Diagnostics Dict
-        try:
-            diagnostics_dict = self.diagnose_model(debug=debug)
-        except Exception as e:
-            LOGGER.error(
-                'Unable to diagnose Model %s (%s | %s - %s).\n'
-                'Exception: %s\n',
-                self.model_id, self.stage, self.model_class, self.intervals, e
-            )
-
-            diagnostics_dict = {'error_calculating_diagnostics_dict': True}
-
-        if needs_repair(diagnostics_dict):
-            LOGGER.warning(
-                'Unable to save Model %s (%s | %s - %s) to backup.\n'
-                'diagnostics_dict:\n%s\n',
-                self.model_id, self.stage, self.model_class, self.intervals,
-                pformat(diagnostics_dict)
-            )
-        else:
-            LOGGER.info(f"Saving {self.model_id} to backup.")
-
-            # Save Model
-            self.save(backup=True)
-
     def save(
         self,
         pickle_files: bool = True,
         parquet_files: bool = True,
         trading_tables: bool = True,
         model: bool = True,
-        backup: bool = False,
         debug: bool = False
     ) -> None:
-        # S3
-        if backup:
-            s3_base_path = f"{Params.bucket}/backup/models/{self.intervals}/{self.model_id}"
-        else:
-            s3_base_path = self.s3_base_path
+        # Make directory if it does not already exist
+        if not os.path.exists(self.save_path):
+            os.makedirs(self.save_path, exist_ok=True)
 
-        """
-        Save .pickle files
-        """
+        # Save .pickle files
         if pickle_files:
+            # Define atts to save
             model_attr = {key: value for (key, value) in self.__dict__.items() if key in self.load_pickle}
 
             # Save pickled attrs
-            write_to_s3(
-                asset=model_attr,
-                path=f"{s3_base_path}/{self.model_id}_model_attr.pickle"
-            )
+            with open(os.path.join(self.save_path, f'{self.model_id}_model_attr.pickle'), 'wb') as file:
+                pickle.dump(model_attr, file)
 
             if debug:
                 print(f'Saved Attributes: {[k for k in model_attr.keys()]}\n')
                 pprint(model_attr)
                 print(f'\n\n')
 
-        """
-        Save .parquet files
-        """
+        # Save .parquet files
         if parquet_files:
             for attr_name in self.load_parquet:
                 df: pd.DataFrame = getattr(self, attr_name)
                 if df is not None:
-                    # Save parquet file
-                    write_to_s3(
-                        asset=df,
-                        path=f"{s3_base_path}/{self.model_id}_model_{attr_name}.parquet",
-                        partition_cols=None
+                    # Save DataFrame as a parquet file
+                    df.to_parquet(
+                        os.path.join(self.save_path, f'{self.model_id}_model_{attr_name}.parquet'), 
+                        engine='pyarrow'
                     )
                 else:
                     LOGGER.warning('Unable to save %s_model_%s.parquet (as attr is None).', self.model_id, attr_name)
 
-        """
-        Save self.val_table & self.test_table
-        """
+        # Save self.val_table & self.test_table
         if trading_tables:
-            # Define base dir
-            s3_base_table_dir = f"trading/trading_table/{self.intervals}/{self.model_id}"
+            # Define table_path
+            table_path = os.path.join("trading_table", self.intervals, self.model_id)
 
             if self.val_table is not None:
                 self.val_table.save()
@@ -2248,17 +2343,11 @@ class Model:
                     self.model_id
                 )
                 try:
-                    # os.remove(os.path.join(base_table_path, f"{self.model_id}_val_trading_df.parquet"))
-                    # delete_from_s3(path=f"{s3_base_table_path}/{self.model_id}_val_trading_df.parquet")
-                    delete_s3_directory(
-                        bucket=Params.bucket, 
-                        directory=f"{s3_base_table_dir}/{self.model_id}_val_trading_df"
-                    )
+                    os.remove(os.path.join(table_path, f"{self.model_id}_val_trading_df.parquet"))
                 except:
                     pass
                 try:
-                    # os.remove(os.path.join(base_table_path, f"{self.model_id}_val_trading_df_attr.pickle"))
-                    delete_from_s3(path=f"{Params.bucket}/{s3_base_table_dir}/{self.model_id}_val_trading_df_attr.pickle")
+                    os.remove(os.path.join(table_path, f"{self.model_id}_val_trading_df_attr.pickle"))
                 except:
                     pass     
             
@@ -2271,17 +2360,11 @@ class Model:
                     self.model_id
                 )
                 try:
-                    # os.remove(os.path.join(base_table_path, f"{self.model_id}_test_trading_df.parquet"))
-                    # delete_from_s3(path=f"{s3_base_table_path}/{self.model_id}_test_trading_df.parquet")
-                    delete_s3_directory(
-                        bucket=Params.bucket, 
-                        directory=f"{s3_base_table_dir}/{self.model_id}_test_trading_df"
-                    )
+                    os.remove(os.path.join(table_path, f"{self.model_id}_test_trading_df.parquet"))
                 except:
                     pass
                 try:
-                    # os.remove(os.path.join(base_table_path, f"{self.model_id}_test_trading_df_attr.pickle"))
-                    delete_from_s3(path=f"{Params.bucket}/{s3_base_table_dir}/{self.model_id}_test_trading_df.pickle")
+                    os.remove(os.path.join(table_path, f"{self.model_id}_test_trading_df_attr.pickle"))
                 except:
                     pass
 
@@ -2294,55 +2377,19 @@ class Model:
                     self.model_id
                 )
                 try:
-                    # os.remove(os.path.join(base_table_path, f"{self.model_id}_opt_trading_df.parquet"))
-                    # delete_from_s3(path=f"{s3_base_table_path}/{self.model_id}_opt_trading_df.parquet")
-                    delete_s3_directory(
-                        bucket=Params.bucket, 
-                        directory=f"{s3_base_table_dir}/{self.model_id}_opt_trading_df"
-                    )
+                    os.remove(os.path.join(table_path, f"{self.model_id}_opt_trading_df.parquet"))
                 except:
                     pass
                 try:
-                    # os.remove(os.path.join(base_table_path, f"{self.model_id}_opt_trading_df_attr.pickle"))
-                    delete_from_s3(path=f"{Params.bucket}/{s3_base_table_dir}/{self.model_id}_opt_trading_df_attr.pickle")
+                    os.remove(os.path.join(table_path, f"{self.model_id}_opt_trading_df_attr.pickle"))
                 except:
                     pass
 
-        """
-        Step 4) Save self.model
-        """
+        # Save self.model
         if model:
             if self.model is not None:
                 if self.algorithm not in ['naive_lv', 'naive_ma']:
-                    # Find write_format
-                    write_format = self.file_name.split('.')[-1]
-
-                    # Define save_path
-                    s3_save_path = f"{s3_base_path}/{self.file_name}"
-                    bucket, key = s3_save_path.split('/')[0], '/'.join(s3_save_path.split('/')[1:])
-
-                    if write_format == 'pickle':
-                        with tempfile.TemporaryFile() as fp:
-                            joblib.dump(self.model, fp)
-                            fp.seek(0)
-                            S3_CLIENT.put_object(
-                                Body=fp.read(), 
-                                Bucket=bucket,
-                                Key=key
-                            )
-
-                    # elif write_format in ['h5', 'ckpt']:
-                    #     buffer = io.BytesIO()
-                    #     torch.save(self.model, buffer)
-
-                    #     S3_CLIENT.put_object(
-                    #         Bucket=bucket, 
-                    #         Key=key,
-                    #         Body=buffer.getvalue()
-                    #     )
-                    else:
-                        LOGGER.critical('Invalid "write_format" %s parameter.\n\n', write_format)
-                        raise Exception(f'Invalid "write_format" {write_format} parameter.\n\n')
+                    self.model.save(os.path.join(self.save_path, self.file_name))
             else:
                 LOGGER.warning('self.model is None!')
 
@@ -2354,13 +2401,12 @@ class Model:
         model: bool = True,
         debug: bool = False
     ) -> None:
-        """
-        Step 1) Load .pickle files
-        """
+        # Load .pickle files
         if pickle_files:
             try:
-                # Find pickled model attrs
-                model_attr: dict = load_from_s3(path=f"{self.s3_base_path}/{self.model_id}_model_attr.pickle")
+                # Load dictionary from a pickle file
+                with open(os.path.join(self.save_path, f'{self.model_id}_model_attr.pickle'), 'rb') as file:
+                    model_attr: dict = pickle.load(file)
 
                 # Set attrs
                 for attr_key, attr_value in model_attr.items():
@@ -2404,18 +2450,18 @@ class Model:
                         self.model_id, self.intervals, e
                     )
             
-        """
-        Step 2) Load .parquet files
-        """
+        # Load .parquet files
         if parquet_files:
             for attr_name in self.load_parquet:
                 try:
-                    # Load parquet file
-                    setattr(self, attr_name, load_from_s3(
-                        path=f"{self.s3_base_path}/{self.model_id}_model_{attr_name}.parquet",
-                        load_reduced_dataset=False,
-                        partition_cols=None
-                    ))
+                    # Load DataFrame from parquet file
+                    df: pd.DataFrame = pd.read_parquet(
+                        os.path.join(self.save_path, f'{self.model_id}_model_{attr_name}.parquet'), 
+                        engine='pyarrow'
+                    )
+
+                    # Set attr
+                    setattr(self, attr_name, df)
                 except Exception as e:
                     LOGGER.warning(
                         'Unable to load %s_model_%s.parquet.\n'
@@ -2461,9 +2507,7 @@ class Model:
                 debug=debug
             )
 
-        """
-        Step 4) Load self.model
-        """ 
+        # Load self.model
         if model:
             try:
                 if self.algorithm == 'naive_lv':
@@ -2473,43 +2517,7 @@ class Model:
                     self.model = self.hyper_parameters['period'], self.hyper_parameters['weight_type']
                 
                 else:
-                    load_format = self.file_name.split('.')[-1]
-
-                    # File System
-                    # save_path = os.path.join(self.base_path, self.file_name)
-
-                    # if load_format == 'pickle':
-                    #     self.model = joblib.load(save_path)
-
-                    # elif self.algorithm == 'lstm':
-                    #     self.model = load_model(save_path)
-
-                    # elif self.algorithm == 'n_beats':
-                    #     self.model = NBEATSModel.load(save_path)
-
-                    # S3
-                    s3_save_path = f"{self.s3_base_path}/{self.file_name}"
-                    bucket, key = s3_save_path.split('/')[0], '/'.join(s3_save_path.split('/')[1:])
-
-                    if load_format == 'pickle':
-                        with tempfile.TemporaryFile() as fp:
-                            S3_CLIENT.download_fileobj(
-                                Fileobj=fp,
-                                Bucket=bucket,
-                                Key=key
-                            )
-                            fp.seek(0)
-
-                            self.model = joblib.load(fp)
-
-                    # elif load_format == 'ckpt':
-                    #     obj = S3_CLIENT.get_object(
-                    #         Bucket=bucket,
-                    #         Key=key
-                    #     )
-                    #     buffer = io.BytesIO()
-
-                    #     self.model = torch.load(io.BytesIO(obj['Body'].read()), buffer)
+                    loaded_model = load_model(os.path.join(self.save_path, self.file_name))
             except Exception as e:
                 LOGGER.error(
                     'Unable to load model (%s: %s).\n'

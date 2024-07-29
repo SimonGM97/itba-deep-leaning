@@ -246,9 +246,6 @@ class Params:
         # Define model_updating
         cls.model_updating: dict = config['model_updating']
 
-        # Define repair
-        cls.repair: dict = config['repair']
-
         """
         Default Script Variables
         """

@@ -47,7 +47,7 @@ def lambda_handler(
         ],
         **params
     )
-    
+
     # Show context
     LOGGER.info('context:\n%s\n', pformat(context))
 
@@ -75,7 +75,7 @@ LOGGER = get_logger(
 # source deactivate
 # conda deactivate
 # source .itba_dl/bin/activate
-# .itba_dl/bin/python scripts/modeling/modeling.py --workflow model_building
+# .itba_dl/bin/python scripts/modeling/modeling.py --workflow model_updating
 #   --workflow: default | model_updating | model_building
 if __name__ == "__main__":
     # Define parser

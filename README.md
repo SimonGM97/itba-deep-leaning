@@ -49,3 +49,17 @@ pip install -e .
 ```bash
 pip install dask[dataframe]
 ```
+
+&nbsp;
+# Usage
+
+## Entrypoints
+
+Se recomienda utilizar los siguientes entrypoints:
+- scripts/data_processing/data_processing.py
+  - Corre el pipeline de procesamiento de datos, pero se pide no utilizarlo ya que la misma modifica data productiva de AWS.
+  - Para correr el script: `.itba_dl/bin/python scripts/data_processing/data_processing.py --workflow trading_round`
+- scripts/modeling/modeling.py
+  - Corre el pipeline de modelado de datos.
+  - Para realizar un proceso de tuneo de modelos (no recomendado por el tiempo que tarda en correr): `.itba_dl/bin/python scripts/modeling/modeling.py --workflow model_building`
+  - Para realizar un proceso de evaluación y plot de retornos del modelo Champion (recomendado): `.itba_dl/bin/python scripts/modeling/modeling.py --workflow model_updating`

@@ -98,8 +98,9 @@ class MLPipeline:
         y_ml = y_trans
 
         selected_features: List[str] = self.pipeline_params.get('selected_features')
+        
         if self.pipeline_params.get('pca'):
-            X_ml = X_trans_pca
+            X_ml = X_trans_pca[:50]
         else:
             X_ml = X_trans[selected_features]
 
@@ -425,7 +426,7 @@ class MLPipeline:
             'lightgbm': medium_steps,
             'xgboost': medium_steps,
             
-            'lstm': short_steps,
+            'lstm': long_steps, # short_steps,
             'n_beats': short_steps
         }[model.algorithm]
 
@@ -493,8 +494,9 @@ class MLPipeline:
             val_table.measure_trading_performance(
                 smooth_returns=self.trading_params.get('smooth_returns'),
                 return_weight=self.trading_params.get('return_weight'),
-                debug=False
+                debug=True
             )
+            print(val_table.tuning_metric)
 
         return val_table
     
@@ -911,10 +913,8 @@ class MLPipeline:
             train_coins_dict = load_GFM_train_coins(
                 intervals=model.intervals
             )
-
+            
             # Re-set model.train_coins
-            print(f'Re-setting train_coins in Model {model.model_id} ({model.stage} | {model.model_class} - {model.intervals}).\n'
-                  f'len(train_coins): {len(train_coins_dict[model.coin_name][model.method])}.\n\n')
             model.train_coins = train_coins_dict[model.coin_name][model.method]
 
         # Prepare Datasets
@@ -924,7 +924,7 @@ class MLPipeline:
             reduced_tuning_periods=reduced_tuning_periods,
             debug=debug # debug
         )
-
+        
         # Build Unfitted Model
         if model.model is None:
             model.build(
@@ -963,7 +963,7 @@ class MLPipeline:
                     val_features=self.X_ml_test.drop(columns='coin_name', errors='ignore'),
                     debug=debug
                 )
-
+        
         # Find Validation Table
         if find_val_table or model.val_table is None:
             model.val_table = self.find_val_table(
@@ -972,7 +972,7 @@ class MLPipeline:
                 max_t=None,
                 debug=debug
             )
-
+        
         # Refit with train & validation datasets
         if re_fit_train_val:
             model.fit(
@@ -1001,18 +1001,18 @@ class MLPipeline:
             )
             model.optimized_trading_parameters = model.optimized_table.trading_parameters.copy()
 
-        # Update Feature Importance
-        if find_feature_importance:
-            if model.model_class == 'LFM':
-                test_features = self.X_ml_test.drop(columns='coin_name', errors='ignore')
-            else:
-                test_features = self.X_ml_test.loc[self.X_ml_test['coin_name'] == model.coin_name].drop(columns='coin_name', errors='ignore')
+        # # Update Feature Importance
+        # if find_feature_importance:
+        #     if model.model_class == 'LFM':
+        #         test_features = self.X_ml_test.drop(columns='coin_name', errors='ignore')
+        #     else:
+        #         test_features = self.X_ml_test.loc[self.X_ml_test['coin_name'] == model.coin_name].drop(columns='coin_name', errors='ignore')
             
-            model.find_feature_importance(
-                test_features=test_features,
-                importance_method=self.ml_params.get('importance_method'), 
-                debug=True
-            )
+        #     model.find_feature_importance(
+        #         test_features=test_features,
+        #         importance_method=self.ml_params.get('importance_method'), 
+        #         debug=True
+        #     )
 
         return model
 

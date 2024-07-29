@@ -10,7 +10,7 @@ general_params:
   stable_coin: USDC
 
 log_params:
-  level: INFO # INFO
+  level: DEBUG # INFO
   txt_fmt: null # default
   json_fmt: null # default
   filter_lvls: null
@@ -31,7 +31,7 @@ data_params:
   features: true
   periods: 
     30min: 24000
-    60min: 15000
+    60min: 8000
   other_coins_n: 8
   z_threshold: 4.0
 
@@ -126,9 +126,9 @@ ml_params:
   lfm_train_val_split: 0.75
   gfm_train_val_split: 0.85
 
-  n_candidates: 12
-  max_evals: 300 # 3500
-  timeout_mins: 720 # 720
+  n_candidates: 15
+  max_evals: 200 # 3500
+  timeout_mins: 540 # 720
 
   importance_method: native # shap
   
@@ -349,19 +349,15 @@ model_building:
     tuning_params:
       tune_models: true
 
-      load_datasets_from_local: true
-      save_datasets_to_local: false
+      load_datasets_from_local: false
+      save_datasets_to_local: true
 
       update_GFM_train_coins: false
       update_ltp_lsl_stp_ssl: false
 
-      reset_dev_lfm_models: false
-      tune_lfm_models: true
       reduced_tuning_periods:
         30min: 18000
-        60min: 5000 # 14000
-      tune_gfm_models: true
-      evaluate_models: true
+        60min: 8000 # 14000
 
       debug: true
       deep_debug: false
@@ -374,94 +370,6 @@ model_building:
 
     # Serving params
     serving_params: null
-
-# Trading Round Workflow
-trading_round:
-  # Trading Job
-  trading:
-    skip_wait: false
-    debug: true
-
-  # Data Processing Job
-  data_processing:
-    # General params
-    update_client: false
-    update_correlations: false
-    update_lc_ids: false
-    overwrite: false
-    debug: false
-
-    # Collective Data params
-    collective_data_update_params:
-      update_data: true
-      update_expectations: false
-      validate_data: true
-
-    # Data Extraction params
-    data_extractor_update_params:
-      update_data: true
-      force_update: false
-      update_expectations: false
-      validate_data: true
-      save_backup: true
-      save: true
-
-    # Data Cleaning params
-    data_cleaner_update_params:
-      update_data: true
-      rewrite_data: false
-      update_expectations: false
-      update_outliers_dict: false
-      update_imputers: false      
-      validate_data: true
-      save: true
-
-    # Data Shifting params
-    data_shifter_update_params:
-      update_data: true
-      rewrite_data: false
-      update_expectations: false
-      update_shift_dict: false
-      record_df: true
-      validate_data: true
-      save: true
-
-    # Data Refining params
-    data_refiner_update_params: null
-
-    # Feature Selecion params
-    selected_features_update_params: null
-
-    # Data Transforming params
-    data_transformer_update_params: null
-
-  # Data Warehousing Job
-  data_warehousing:
-    debug: true
-
-    # Cleaning params
-    cleaning_params:
-      clean_tables: false
-      table_names: null
-
-    # Expectations params
-    update_expectations: false
-
-    # Populating params
-    populating_params:
-      # Dimensions tables
-      register_new_dim_objects: false
-      populate_models: false
-
-      # Facts tables
-      populate_fact_tables: true
-
-      populate_futures_balances: true
-      populate_asset_valuations: true
-      populate_futures_income_history: true
-      populate_futures_orders_history: true
-      collect_new_inferences: true
-      collect_new_delays: true
 
 # Model Updating Workflow
 model_updating:
@@ -527,67 +435,29 @@ model_updating:
       update_ltp_lsl_stp_ssl: false
       
       update_residuals: false
-      optimize_trading_parameters: false
-      update_feature_importance: true
+      optimize_trading_parameters: true
+      update_feature_importance: false
       ignore_last_update_periods: 12
 
-      update_champion: false
+      plot_champion_returns: true
+
+      update_champion: true
       debug: false
 
-    # Drift params
-    drift_params:
-      measure_drift: false # true
-      expected_monthly_avg_ret: 0.1
-      expected_acc: 0.52
-      avg_ret_certainty_threshold: 0.05
-      acc_certainty_threshold: 0.05
-      cum_ret_certainty_threshold: 0.05
-      days_to_eval: 30
-      recreate_sim: false
-
-      debug: false
-
-    # Serving params
-    serving_params: null
-
-  # Data Warehousing Job
-  data_warehousing:
+# Trading Round Workflow
+trading_round:
+  # Trading Job
+  trading:
+    skip_wait: false
     debug: true
 
-    # Cleaning params
-    cleaning_params:
-      clean_tables: false
-      table_names: null
-
-    # Expectations params
-    update_expectations: false
-
-    # Populating params
-    populating_params:
-      # Dimensions tables
-      register_new_dim_objects: false
-      populate_models: true
-
-      # Facts tables
-      populate_fact_tables: false
-
-      populate_futures_balances: false
-      populate_asset_valuations: false
-      populate_futures_income_history: false
-      populate_futures_orders_history: false
-      collect_new_inferences: false
-      collect_new_delays: false
-
-repair:
   # Data Processing Job
   data_processing:
     # General params
-    update_client: true
+    update_client: false
     update_correlations: false
-    update_lc_ids: true
-    overwrite: true
-    repair_coins: # null
-      - UNI
+    update_lc_ids: false
+    overwrite: false
     debug: false
 
     # Collective Data params
@@ -607,18 +477,18 @@ repair:
 
     # Data Cleaning params
     data_cleaner_update_params:
-      update_data: false
-      rewrite_data: true
+      update_data: true
+      rewrite_data: false
       update_expectations: false
-      update_outliers_dict: true
+      update_outliers_dict: false
       update_imputers: false      
       validate_data: true
       save: true
 
     # Data Shifting params
     data_shifter_update_params:
-      update_data: false
-      rewrite_data: true
+      update_data: true
+      rewrite_data: false
       update_expectations: false
       update_shift_dict: false
       record_df: true
@@ -626,27 +496,13 @@ repair:
       save: true
 
     # Data Refining params
-    data_refiner_update_params:
-      update_data: false
-      rewrite_data: true
-      update_expectations: false
-      update_outliers_dict: false
-      validate_data: true
-      save: true
+    data_refiner_update_params: null
 
     # Feature Selecion params
     selected_features_update_params: null
 
     # Data Transforming params
-    data_transformer_update_params:
-      update_data: false
-      rewrite_data: true
-      update_expectations: false
-      refit_transformers: false
-      validate_data: true
-      validate_transformers: true
-      update_consistency_storage: true
-      save: true
+    data_transformer_update_params: null
 
 # --Default Workflow--
 default:
@@ -667,33 +523,33 @@ default:
     # Collective Data params
     collective_data_update_params:
       update_data: true
-      update_expectations: true
+      update_expectations: false
       validate_data: true
 
     # Data Extraction params
     data_extractor_update_params:
       update_data: true
       force_update: false
-      update_expectations: true
+      update_expectations: false
       validate_data: true
-      save_backup: true
+      save_backup: false
       save: true
 
     # Data Cleaning params
     data_cleaner_update_params:
       update_data: true
-      rewrite_data: true
-      update_expectations: true
-      update_outliers_dict: true
-      update_imputers: true      
+      rewrite_data: false
+      update_expectations: false
+      update_outliers_dict: false
+      update_imputers: false      
       validate_data: true
       save: true
 
     # Data Shifting params
     data_shifter_update_params:
       update_data: true
-      rewrite_data: true
-      update_expectations: true
+      rewrite_data: false
+      update_expectations: false
       update_shift_dict: false
       record_df: true
       validate_data: true
@@ -701,12 +557,12 @@ default:
 
     # Data Refining params
     data_refiner_update_params:
-      update_data: false
+      update_data: true
       rewrite_data: false
       update_expectations: false
       update_outliers_dict: false
-      validate_data: false
-      save: false
+      validate_data: true
+      save: true
 
     # Feature Selecion params
     selected_features_update_params:
@@ -721,20 +577,20 @@ default:
 
     # Data Transforming params
     data_transformer_update_params:
-      update_data: false
+      update_data: true
       rewrite_data: false
       update_expectations: false
       refit_transformers: false
-      validate_data: false
+      validate_data: true
       validate_transformers: false
       update_consistency_storage: false
-      save: false
+      save: true
 
   # Modeling Job
   modeling:
     # Tunning params
     tuning_params:
-      tune_models: true
+      tune_models: false
 
       load_datasets_from_local: false
       save_datasets_to_local: false
@@ -742,13 +598,9 @@ default:
       update_GFM_train_coins: false
       update_ltp_lsl_stp_ssl: false
 
-      reset_dev_lfm_models: false
-      tune_lfm_models: true
       reduced_tuning_periods:
         30min: 18000
         60min: 14000
-      tune_gfm_models: true
-      evaluate_models: true
 
       debug: false
       deep_debug: false
@@ -767,66 +619,12 @@ default:
       
       update_residuals: false
       optimize_trading_parameters: false
-      update_feature_importance: true
+      update_feature_importance: false
       ignore_last_update_periods: 12
 
-      update_champion: false
+      plot_champion_returns: true
+
+      update_champion: true
       debug: false
-
-    # Drift params
-    drift_params:
-      measure_drift: false # true
-      expected_monthly_avg_ret: 0.1
-      expected_acc: 0.52
-      avg_ret_certainty_threshold: 0.05
-      acc_certainty_threshold: 0.05
-      cum_ret_certainty_threshold: 0.05
-      days_to_eval: 30
-      recreate_sim: false
-
-      debug: false
-
-    # Serving params
-    serving_params:
-      serve_model: false
-
-  # Data Warehousing Job
-  data_warehousing:
-    debug: true
-
-    # Cleaning params
-    cleaning_params:
-      clean_tables: false # false
-      table_names: null
-        # - fees
-        # - clients
-        # - accounts
-        # - models
-
-        # - futures_balances
-        # - asset_valuations
-        # - futures_income_history
-        # - futures_orders_history
-        # - inferences
-        # - delays
-
-    # Expectations params
-    update_expectations: false # false
-
-    # Populating params
-    populating_params:
-      # Dimensions tables
-      register_new_dim_objects: false # false
-      populate_models: true # false
-
-      # Facts tables
-      populate_fact_tables: false # false
-
-      populate_futures_balances: false # false
-      populate_asset_valuations: false # false
-      populate_futures_income_history: false # false
-      populate_futures_orders_history: false # false
-      collect_new_inferences: false # false
-      collect_new_delays: false # false
 
 # 

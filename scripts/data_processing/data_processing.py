@@ -94,7 +94,7 @@ LOGGER = get_logger(
 
 # conda deactivate
 # source .itba_dl/bin/activate
-# .itba_dl/bin/python scripts/data_processing/data_processing.py --workflow trading_round --forced_intervals 30min
+# .itba_dl/bin/python scripts/data_processing/data_processing.py --workflow trading_round
 #   --workflow: default | model_building | trading_round | model_updating | repair
 #   --forced_intervals: 30min | 60min
 if __name__ == "__main__":

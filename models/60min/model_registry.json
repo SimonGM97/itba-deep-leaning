@@ -1,0 +1,15 @@
+{
+    "production": [
+        [
+            "AsxSGiwnJI",
+            "GFM"
+        ]
+    ],
+    "staging": [
+        [
+            "saOUBQcfqE",
+            "GFM"
+        ]
+    ],
+    "development": []
+}

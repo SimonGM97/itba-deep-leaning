@@ -107,36 +107,16 @@ def put_binance_order():
 # source .itba_dl/bin/activate
 # .itba_dl/bin/python dummy.py
 if __name__ == '__main__':
-    from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense
+    import pickle
+    import os
+    import json
 
-    # balances: pd.DataFrame = load_from_s3(
-    #     path=f"{Params.bucket}/financials/facts/futures_orders_history.parquet",
-    #     load_reduced_dataset=False
-    # )
-    # write_to_s3(
-    #     asset=balances,
-    #     path=f"{Params.bucket}/financials/facts/new_futures_orders_history.parquet",
-    #     partition_cols=['account_id', 'year_month'],
-    #     datetime_col='period',
-    #     overwrite=True
-    # )
-    
-    # collective_data: pd.DataFrame = get_collective_data(
-    #     client=client, 
-    #     loaded_collective_data=None,
-    #     accelerated=False,
-    #     category_features=None,
-    #     other_coins=other_coins, 
-    #     intervals=intervals, 
-    #     periods=data_params.get('periods'),
-    #     yfinance_params=data_params.get('yfinance_params'),
-    #     parallel=True,
-    #     skip_check=True,
-    #     validate=True,
-    #     save=True,
-    #     overwrite=True,
-    #     save_mock=False,
-    #     ignore_last_period_check=False,
-    #     debug=False
-    # )
+    # Instanciate ModelRegistry
+    model_registry = ModelRegistry(
+        n_candidates=Params.ml_params.get('n_candidates'),
+        intervals=intervals
+    )
+
+    champion: Model = model_registry.load_prod_model(light=False)
+
+    print(champion)
